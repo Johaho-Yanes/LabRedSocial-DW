@@ -257,7 +257,6 @@ Si tienes problemas o preguntas:
 - ✅ Búsqueda de imágenes
 - ✅ API RESTful
 - 🔄 Frontend (en desarrollo)
-- 🔄 Tests unitarios (pendiente)
 - 🔄 Documentación de API con Swagger (pendiente)
 
 ---
