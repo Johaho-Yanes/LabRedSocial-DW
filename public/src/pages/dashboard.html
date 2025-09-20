@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Blog Out</title>
+    <link rel="stylesheet" href="../../css/styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <!-- Header con menú desplegable -->
+    <header class="header">
+        <div class="container">
+            <nav class="navbar">
+                <a href="/" class="logo">
+                    <span class="logo-text">Blog Out</span>
+                </a>
+                
+                <div class="nav-menu">
+                    <a href="/explore" class="nav-link">
+                        <i class="fas fa-compass"></i> Explorar
+                    </a>
+                    <a href="/upload" class="nav-link">
+                        <i class="fas fa-upload"></i> Subir
+                    </a>
+                    
+                    <!-- Menú de usuario -->
+                    <div class="dropdown" id="userDropdown">
+                        <button class="profile-button" id="profileDropdown">
+                            <div id="userAvatar"></div>
+                            <span id="username" class="username-text">Cargando...</span>
+                            <i class="fas fa-chevron-down"></i>
+                        </button>
+                        <div class="dropdown-menu hidden" id="profileMenu">
+                            <div class="dropdown-header">
+                                <div id="menuAvatar"></div>
+                                <div class="user-info">
+                                    <span id="menuUsername" class="font-bold">Cargando...</span>
+                                    <span id="userEmail" class="text-gray-500"></span>
+                                </div>
+                            </div>
+                            <div class="dropdown-divider"></div>
+                            <a href="/profile" class="dropdown-item">
+                                <i class="fas fa-user"></i> Mi Perfil
+                            </a>
+                            <a href="/settings" class="dropdown-item">
+                                <i class="fas fa-cog"></i> Configuración
+                            </a>
+                            <a href="/settings/password" class="dropdown-item">
+                                <i class="fas fa-key"></i> Cambiar Contraseña
+                            </a>
+                            <div class="dropdown-divider"></div>
+                            <button onclick="handleLogout()" class="dropdown-item text-danger">
+                                <i class="fas fa-sign-out-alt"></i> Cerrar sesión
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Contenido principal -->
+    <main class="main-content">
+        <div class="container">
+            <div class="grid grid-cols-3 gap-lg">
+                <!-- Feed de imágenes -->
+                <div class="col-span-2">
+                    <div class="feed-container" id="imageFeed">
+                        <div class="loading-message">
+                            <i class="fas fa-spinner fa-spin"></i>
+                            Cargando imágenes...
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sidebar -->
+                <div class="col-span-1">
+                    <div class="sidebar-card">
+                        <h3 class="sidebar-title">Sugerencias para ti</h3>
+                        <div id="userSuggestions">
+                            <!-- Sugerencias se cargarán aquí -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="../../src/js/auth.js"></script>
+    <script>
+        let currentUser = null;
+
+        // Función para manejar el logout
+        function handleLogout() {
+            if (confirm('¿Estás seguro que quieres cerrar sesión?')) {
+                Auth.logout();
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            console.log('🔄 Iniciando dashboard...');
+            
+            // Verificar autenticación
+            if (!Auth.isAuthenticated()) {
+                console.log('❌ No autenticado, redirigiendo al login');
+                window.location.href = '/login';
+                return;
+            }
+
+            try {
+                // Obtener usuario actual
+                console.log('🔄 Obteniendo usuario actual...');
+                const user = await Auth.getCurrentUser();
+                
+                if (!user) {
+                    console.log('❌ No se pudo obtener usuario, redirigiendo al login');
+                    Auth.clearSession();
+                    window.location.href = '/login';
+                    return;
+                }
+
+                console.log('✅ Usuario obtenido:', user);
+                currentUser = user;
+                
+                // Inicializar dashboard
+                await initializeDashboard(user);
+                
+            } catch (error) {
+                console.error('❌ Error inicializando dashboard:', error);
+                // Mostrar mensaje de error pero no redirigir inmediatamente
+                showError('Error cargando el dashboard. Reintentando...');
+                
+                // Reintentar después de 2 segundos
+                setTimeout(() => {
+                    window.location.reload();
+                }, 2000);
+            }
+        });
+
+        async function initializeDashboard(user) {
+            try {
+                console.log('🔄 Inicializando UI del dashboard...');
+                
+                // Actualizar información del usuario en la UI
+                updateUserUI(user);
+                
+                // Configurar menú desplegable
+                setupDropdownMenu();
+                
+                // Cargar feed de imágenes
+                await loadImageFeed();
+
+                console.log('✅ Dashboard inicializado correctamente');
+
+                // Configurar verificación periódica de autenticación (opcional)
+                setInterval(() => {
+                    if (!Auth.isAuthenticated()) {
+                        console.log('🔄 Sesión expirada, redirigiendo...');
+                        window.location.href = '/login';
+                    }
+                }, 5 * 60 * 1000); // Verificar cada 5 minutos
+                
+            } catch (error) {
+                console.error('❌ Error en initializeDashboard:', error);
+                showError('Error inicializando el dashboard');
+            }
+        }
+
+        function updateUserUI(user) {
+            // Actualizar textos de usuario
+            const usernameElements = ['username', 'menuUsername'];
+            usernameElements.forEach(id => {
+                const element = document.getElementById(id);
+                if (element) {
+                    element.textContent = user.username || 'Usuario';
+                }
+            });
+
+            const emailElement = document.getElementById('userEmail');
+            if (emailElement) {
+                emailElement.textContent = user.email || '';
+            }
+            
+            // Actualizar avatares
+            updateUserAvatar(user);
+        }
+
+        function setupDropdownMenu() {
+            const dropdownButton = document.getElementById('profileDropdown');
+            const menu = document.getElementById('profileMenu');
+            
+            if (!dropdownButton || !menu) {
+                console.error('❌ No se encontraron elementos del menú desplegable');
+                return;
+            }
+            
+            dropdownButton.addEventListener('click', (e) => {
+                e.stopPropagation();
+                menu.classList.toggle('hidden');
+            });
+
+            // Cerrar menú al hacer clic fuera
+            document.addEventListener('click', (e) => {
+                if (!menu.contains(e.target) && !dropdownButton.contains(e.target)) {
+                    menu.classList.add('hidden');
+                }
+            });
+        }
+
+        function updateUserAvatar(user) {
+            const avatarContent = user.avatar ? 
+                `<img src="${user.avatar}" alt="${user.username}" class="avatar-sm">` :
+                getDefaultAvatar(user.username, 'sm');
+
+            const menuAvatarContent = user.avatar ?
+                `<img src="${user.avatar}" alt="${user.username}" class="avatar-md">` :
+                getDefaultAvatar(user.username, 'md');
+
+            const userAvatarElement = document.getElementById('userAvatar');
+            const menuAvatarElement = document.getElementById('menuAvatar');
+
+            if (userAvatarElement) {
+                userAvatarElement.innerHTML = avatarContent;
+            }
+
+            if (menuAvatarElement) {
+                menuAvatarElement.innerHTML = menuAvatarContent;
+            }
+        }
+
+        async function loadImageFeed() {
+            try {
+                console.log('🔄 Cargando feed de imágenes...');
+                
+                const response = await Auth.authenticatedFetch(`${Auth.API_URL}/images/`);
+
+                if (!response.ok) {
+                    throw new Error(`Error HTTP: ${response.status}`);
+                }
+
+                const data = await response.json();
+                console.log('✅ Feed cargado:', data);
+                
+                updateFeedUI(data.data || data.images || []);
+            } catch (error) {
+                console.error('❌ Error cargando feed:', error);
+                showError('Error cargando las imágenes del feed');
+                
+                // Mostrar mensaje en el feed
+                const feedContainer = document.getElementById('imageFeed');
+                if (feedContainer) {
+                    feedContainer.innerHTML = `
+                        <div class="error-message">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <p>Error cargando las imágenes. <button onclick="loadImageFeed()">Reintentar</button></p>
+                        </div>
+                    `;
+                }
+            }
+        }
+
+        function updateFeedUI(images) {
+            const feedContainer = document.getElementById('imageFeed');
+            if (!feedContainer) return;
+
+            if (!images || images.length === 0) {
+                feedContainer.innerHTML = `
+                    <div class="empty-feed">
+                        <i class="fas fa-images"></i>
+                        <p>No hay imágenes para mostrar</p>
+                        <p><a href="/upload">¡Sube la primera imagen!</a></p>
+                    </div>
+                `;
+                return;
+            }
+
+            // Renderizar imágenes (esto lo puedes expandir según tu diseño)
+            feedContainer.innerHTML = images.map(image => `
+                <div class="image-card">
+                    <img src="${image.url}" alt="${image.title || 'Imagen'}" />
+                    <div class="image-info">
+                        <h4>${image.title || 'Sin título'}</h4>
+                        <p>Por: ${image.author?.username || 'Usuario'}</p>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function getDefaultAvatar(username, size = 'sm') {
+            if (!username) return '';
+            
+            const colorIndex = username.charCodeAt(0) % 5 + 1;
+            return `
+                <div class="avatar-${size} avatar-default" data-color="${colorIndex}">
+                    ${username.charAt(0).toUpperCase()}
+                </div>
+            `;
+        }
+
+        function showError(message) {
+            console.error('❌', message);
+            // Aquí podrías mostrar una notificación toast o similar
+        }
+    </script>
+</body>
+</html>

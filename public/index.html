@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blog Out</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <header class="header">
+        <div class="container">
+            <nav class="navbar">
+                <a href="/" class="logo">
+                    <span class="logo-text">Blog Out</span>
+                </a>
+                
+                <!-- Menú para usuarios autenticados -->
+                <div class="nav-menu auth-only" style="display: none;">
+                    <a href="/explore" class="nav-link">
+                        <i class="fas fa-compass"></i> Explorar
+                    </a>
+                    <a href="/upload" class="nav-link">
+                        <i class="fas fa-upload"></i> Subir
+                    </a>
+                    <div class="user-menu">
+                        <span id="username" class="username"></span>
+                        <button onclick="Auth.logout()" class="btn btn-outline">
+                            Cerrar sesión
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Menú para invitados -->
+                <div class="nav-menu guest-only">
+                    <a href="/login" class="btn btn-outline">Iniciar sesión</a>
+                    <a href="/register" class="btn btn-primary">Registrarse</a>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Resto del contenido... -->
+
+    <script src="src/js/auth.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Si ya está autenticado, redirigir al dashboard
+            if (Auth.isAuthenticated()) {
+                window.location.href = '/dashboard';
+            }
+        });
+    </script>
+</body>
+</html>

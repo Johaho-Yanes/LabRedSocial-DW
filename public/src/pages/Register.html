@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registro - Blog Out</title>
+    <link rel="stylesheet" href="../../css/styles.css">
+</head>
+<body class="bg-bg">
+    <div class="container">
+        <div class="flex items-center justify-center" style="min-height: 100vh;">
+            <div class="card" style="width: 100%; max-width: 400px;">
+                <div class="card-header text-center">
+                    <a href="/" class="logo">
+                        <span class="logo-text">Blog Out</span>
+                    </a>
+                    <h1 class="text-2xl font-bold text-dart mt-4">Crear Cuenta</h1>
+                </div>
+                
+                <div class="card-body">
+                    <form id="registerForm" class="fade-in">
+                        <div class="form-group">
+                            <label class="form-label">Nombre de usuario</label>
+                            <input type="text" class="form-input" id="username" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Email</label>
+                            <input type="email" class="form-input" id="email" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">Contraseña</label>
+                            <input type="password" class="form-input" id="password" required>
+                        </div>
+                        
+                        <div class="alert alert-danger hidden" id="registerError"></div>
+                        
+                        <button type="submit" class="btn btn-primary btn-full">
+                            Registrarse
+                        </button>
+                    </form>
+                </div>
+                
+                <div class="card-footer text-center">
+                    <p class="text-forest">
+                        ¿Ya tienes cuenta? 
+                        <a href="/login" class="font-semibold">Inicia sesión</a>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="../../src/js/auth.js"></script>
+    <script>
+        document.getElementById('registerForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const username = document.getElementById('username').value;
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const errorDiv = document.getElementById('registerError');
+            
+            try {
+                const response = await Auth.register(username, email, password);
+                console.log('Respuesta registro:', response);
+                
+                if (response.status === 'success') {
+                    console.log('✅ Registro exitoso');
+                    window.location.href = '/login';
+                }
+            } catch (error) {
+                console.error('❌ Error:', error);
+                errorDiv.textContent = error.message;
+                errorDiv.classList.remove('hidden');
+            }
+        });
+    </script>
+</body>
+</html>
