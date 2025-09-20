@@ -95,4 +95,4 @@ npm start
 
 📄 Licencia
 
-Uso académico — libre para aprendizaje y extensión.
+Uso académico — libre para aprendizaje, uso y extensión.
