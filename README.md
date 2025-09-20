@@ -220,14 +220,6 @@ La aplicación utiliza JWT (JSON Web Tokens) para la autenticación:
 2. Crea un cluster y obtén la URI de conexión
 3. Actualiza `MONGODB_URI` en tu `.env`
 
-### Variables de Producción
-```bash
-NODE_ENV=production
-MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/imgur_clone
-JWT_SECRET=tu_jwt_secret_muy_seguro_para_produccion
-PORT=80
-```
-
 ## 🤝 Contribución
 
 1. Fork el proyecto
