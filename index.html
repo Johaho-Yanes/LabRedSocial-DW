@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blog Out - Comparte tus momentos</title>
+    <meta name="description" content="Blog Out - La plataforma fresca para compartir tus mejores imágenes con el mundo">
+    <link rel="stylesheet" href="public/css/styles.css">
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="container">
+            <nav class="navbar">
+                <a href="#" class="logo">
+                    <span class="logo-text">Blog Out</span>
+                </a>
+                
+                <ul class="nav-menu">
+                    <li><a href="#" class="nav-link active">Inicio</a></li>
+                    <li><a href="#" class="nav-link">Explorar</a></li>
+                    <li><a href="#" class="nav-link">Trending</a></li>
+                    <li><a href="#" class="nav-link">Subir</a></li>
+                </ul>
+                
+                <div class="flex items-center gap-md">
+                    <button class="btn btn-outline">Iniciar Sesión</button>
+                    <button class="btn btn-primary">Registrarse</button>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="section bg-card">
+        <div class="container text-center">
+            <div class="logo-hero">
+                <span class="logo-text">BLOG OUT</span>
+            </div>
+            <h1 class="text-4xl font-bold text-dart mb-4">
+                Comparte tus momentos con estilo
+            </h1>
+            <p class="text-lg text-forest mb-6">
+                La plataforma más fresca para subir, compartir y descubrir imágenes increíbles
+            </p>
+            <div class="flex justify-center gap-md">
+                <button class="btn btn-primary btn-lg">Comenzar Ahora</button>
+                <button class="btn btn-secondary btn-lg">Explorar Galería</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Upload Section -->
+    <section class="section">
+        <div class="container">
+            <div class="text-center mb-6">
+                <h2 class="text-3xl font-bold text-dart mb-4">Sube tu imagen</h2>
+                <p class="text-lg text-forest">
+                    Arrastra y suelta tu imagen o haz clic para seleccionar
+                </p>
+            </div>
+            
+            <div class="card" style="max-width: 600px; margin: 0 auto;">
+                <div class="card-body">
+                    <div class="upload-zone">
+                        <div class="upload-icon">📸</div>
+                        <div class="upload-text">Arrastra tu imagen aquí</div>
+                        <div class="upload-hint">o haz clic para seleccionar</div>
+                        <input type="file" id="imageUpload" accept="image/*" style="display: none;">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Título de la imagen</label>
+                        <input type="text" class="form-input" placeholder="Ponle un título genial a tu imagen">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Descripción (opcional)</label>
+                        <textarea class="form-textarea" placeholder="Cuenta la historia detrás de esta imagen..."></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Tags</label>
+                        <input type="text" class="form-input" placeholder="Separar con comas: naturaleza, paisaje, aventura">
+                    </div>
+                    
+                    <button class="btn btn-primary btn-full">Publicar Imagen</button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Gallery Preview -->
+    <section class="section bg-bg">
+        <div class="container">
+            <div class="text-center mb-6">
+                <h2 class="text-3xl font-bold text-dart mb-4">Galería Reciente</h2>
+                <p class="text-lg text-forest">Descubre las últimas imágenes compartidas por nuestra comunidad</p>
+            </div>
+            
+            <!-- Tags populares -->
+            <div class="text-center mb-6">
+                <div class="tags-container" style="justify-content: center;">
+                    <span class="tag">🌿 naturaleza</span>
+                    <span class="tag">📸 fotografía</span>
+                    <span class="tag">🎨 arte</span>
+                    <span class="tag">🚀 tecnología</span>
+                    <span class="tag">🍕 comida</span>
+                    <span class="tag">✈️ viajes</span>
+                    <span class="tag">🎵 música</span>
+                </div>
+            </div>
+            
+            <!-- Grid de imágenes (placeholder) -->
+            <div class="grid grid-cols-4">
+                <!-- Ejemplo de tarjeta de imagen -->
+                <div class="image-card">
+                    <div class="image-container">
+                        <div class="skeleton skeleton-image"></div>
+                        <div class="image-overlay">
+                            <h3>Atardecer en la playa</h3>
+                        </div>
+                    </div>
+                    <div class="image-info">
+                        <h4 class="image-title">Atardecer perfecto</h4>
+                        <div class="image-stats">
+                            <span class="image-stat">❤️ 24</span>
+                            <span class="image-stat">👁️ 156</span>
+                            <span class="image-stat">💬 8</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Más tarjetas skeleton -->
+                <div class="image-card">
+                    <div class="image-container">
+                        <div class="skeleton skeleton-image"></div>
+                        <div class="image-overlay">
+                            <h3>Montañas nevadas</h3>
+                        </div>
+                    </div>
+                    <div class="image-info">
+                        <h4 class="image-title">Aventura de invierno</h4>
+                        <div class="image-stats">
+                            <span class="image-stat">❤️ 42</span>
+                            <span class="image-stat">👁️ 289</span>
+                            <span class="image-stat">💬 15</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="image-card">
+                    <div class="image-container">
+                        <div class="skeleton skeleton-image"></div>
+                        <div class="image-overlay">
+                            <h3>Arte urbano</h3>
+                        </div>
+                    </div>
+                    <div class="image-info">
+                        <h4 class="image-title">Graffiti colorido</h4>
+                        <div class="image-stats">
+                            <span class="image-stat">❤️ 18</span>
+                            <span class="image-stat">👁️ 95</span>
+                            <span class="image-stat">💬 5</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="image-card">
+                    <div class="image-container">
+                        <div class="skeleton skeleton-image"></div>
+                        <div class="image-overlay">
+                            <h3>Café matutino</h3>
+                        </div>
+                    </div>
+                    <div class="image-info">
+                        <h4 class="image-title">Momento perfecto</h4>
+                        <div class="image-stats">
+                            <span class="image-stat">❤️ 31</span>
+                            <span class="image-stat">👁️ 167</span>
+                            <span class="image-stat">💬 12</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="text-center mt-6">
+                <button class="btn btn-secondary btn-lg">Ver Más Imágenes</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="section">
+        <div class="container">
+            <div class="text-center mb-6">
+                <h2 class="text-3xl font-bold text-dart mb-4">¿Por qué Blog Out?</h2>
+                <p class="text-lg text-forest">La plataforma que necesitabas para expresar tu creatividad</p>
+            </div>
+            
+            <div class="grid grid-cols-3">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <div class="text-5xl mb-4">🚀</div>
+                        <h3 class="text-xl font-semibold text-dart mb-4">Súper Rápido</h3>
+                        <p class="text-forest">Sube tus imágenes en segundos con nuestro sistema optimizado</p>
+                    </div>
+                </div>
+                
+                <div class="card text-center">
+                    <div class="card-body">
+                        <div class="text-5xl mb-4">🎨</div>
+                        <h3 class="text-xl font-semibold text-dart mb-4">Diseño Fresco</h3>
+                        <p class="text-forest">Interfaz moderna inspirada en los colores más vibrantes</p>
+                    </div>
+                </div>
+                
+                <div class="card text-center">
+                    <div class="card-body">
+                        <div class="text-5xl mb-4">🌍</div>
+                        <h3 class="text-xl font-semibold text-dart mb-4">Comunidad Global</h3>
+                        <p class="text-forest">Conecta con fotógrafos y artistas de todo el mundo</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="section-sm bg-dart">
+        <div class="container">
+            <div class="grid grid-cols-4">
+                <div>
+                    <div class="logo" style="color: var(--pear); margin-bottom: var(--space-md);">
+                        <span class="logo-text">Blog Out</span>
+                    </div>
+                    <p style="color: var(--apple);">La plataforma más fresca para compartir tus momentos</p>
+                </div>
+                
+                <div>
+                    <h4 style="color: var(--pear); margin-bottom: var(--space-md);">Explorar</h4>
+                    <ul style="list-style: none; color: var(--apple);">
+                        <li><a href="#" style="color: var(--apple);">Trending</a></li>
+                        <li><a href="#" style="color: var(--apple);">Recientes</a></li>
+                        <li><a href="#" style="color: var(--apple);">Populares</a></li>
+                        <li><a href="#" style="color: var(--apple);">Tags</a></li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h4 style="color: var(--pear); margin-bottom: var(--space-md);">Comunidad</h4>
+                    <ul style="list-style: none; color: var(--apple);">
+                        <li><a href="#" style="color: var(--apple);">Usuarios</a></li>
+                        <li><a href="#" style="color: var(--apple);">Grupos</a></li>
+                        <li><a href="#" style="color: var(--apple);">Eventos</a></li>
+                        <li><a href="#" style="color: var(--apple);">Blog</a></li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h4 style="color: var(--pear); margin-bottom: var(--space-md);">Soporte</h4>
+                    <ul style="list-style: none; color: var(--apple);">
+                        <li><a href="#" style="color: var(--apple);">Ayuda</a></li>
+                        <li><a href="#" style="color: var(--apple);">API</a></li>
+                        <li><a href="#" style="color: var(--apple);">Términos</a></li>
+                        <li><a href="#" style="color: var(--apple);">Privacidad</a></li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="text-center mt-6" style="padding-top: var(--space-lg); border-top: 1px solid var(--apple);">
+                <p style="color: var(--apple);">© 2024 Blog Out. Hecho con 💚 para la comunidad creativa</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- JavaScript básico -->
+    <script>
+        // Upload zone functionality
+        const uploadZone = document.querySelector('.upload-zone');
+        const fileInput = document.getElementById('imageUpload');
+        
+        uploadZone.addEventListener('click', () => {
+            fileInput.click();
+        });
+        
+        uploadZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadZone.classList.add('dragover');
+        });
+        
+        uploadZone.addEventListener('dragleave', () => {
+            uploadZone.classList.remove('dragover');
+        });
+        
+        uploadZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadZone.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFileUpload(files[0]);
+            }
+        });
+        
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFileUpload(e.target.files[0]);
+            }
+        });
+        
+        function handleFileUpload(file) {
+            console.log('Archivo seleccionado:', file.name);
+            // Aquí iría la lógica de upload real
+            uploadZone.innerHTML = `
+                <div class="upload-icon">✅</div>
+                <div class="upload-text">¡Archivo cargado!</div>
+                <div class="upload-hint">${file.name}</div>
+            `;
+        }
+    </script>
+</body>
+</html>
