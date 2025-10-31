@@ -1,0 +1,21 @@
+# Elastic Beanstalk ignore
+node_modules/
+.git/
+.gitignore
+*.md
+.env
+.env.local
+.vscode/
+
+# Frontend (solo necesitamos el build)
+frontend/src/
+frontend/node_modules/
+frontend/public/
+
+# Backend uploads (usar S3 en producción)
+backend/uploads/
+
+# Tests y documentación
+*.test.js
+*.spec.js
+__tests__/

@@ -1,0 +1,112 @@
+# ============================================
+# DEPENDENCIAS (Reinstalar con npm install)
+# ============================================
+node_modules/
+*/node_modules/
+package-lock.json
+*/package-lock.json
+
+# ============================================
+# ARCHIVOS DE BUILD (Se generan automáticamente)
+# ============================================
+build/
+dist/
+*/build/
+*/dist/
+.vite/
+frontend/.vite/
+
+# ============================================
+# VARIABLES DE ENTORNO (CRÍTICO - NO SUBIR)
+# ============================================
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+backend/.env
+frontend/.env
+
+# ✅ MANTENER: .env.example (template para el equipo)
+!.env.example
+!backend/.env.example
+!.env.production.example
+
+# ============================================
+# ARCHIVOS SUBIDOS POR USUARIOS
+# ============================================
+backend/uploads/*
+!backend/uploads/.gitkeep
+
+# ============================================
+# LOGS Y DEBUG
+# ============================================
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+logs/
+*.log
+
+# ============================================
+# SISTEMA OPERATIVO
+# ============================================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# ============================================
+# IDEs Y EDITORES
+# ============================================
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
+*.sublime-workspace
+*.sublime-project
+
+# ============================================
+# TESTING Y COVERAGE
+# ============================================
+coverage/
+.nyc_output/
+*.lcov
+
+# ============================================
+# CACHE Y TEMP
+# ============================================
+.cache/
+.parcel-cache/
+.next/
+.nuxt/
+.temp/
+tmp/
+
+# ============================================
+# MONGODB (si usas local)
+# ============================================
+data/
+*.db
+
+# ============================================
+# AWS Y SECRETS (CRÍTICO - NO SUBIR)
+# ============================================
+*.pem
+*.key
+.aws/
+aws-credentials.json
+
+# ============================================
+# OTROS
+# ============================================
+.eslintcache
+*.tsbuildinfo
