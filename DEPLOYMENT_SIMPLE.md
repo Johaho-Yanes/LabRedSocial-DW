@@ -1,5 +1,15 @@
 # 🚀 Despliegue Rápido y GRATIS - Alternativas Simples
 
+> **✅ NOTA IMPORTANTE (Actualizado Oct 2025):**  
+> Este proyecto **YA TIENE** configurado:
+> - ✅ **MongoDB Atlas** - Base de datos en la nube funcionando
+> - ✅ **AWS S3** - Almacenamiento de imágenes configurado y probado
+> 
+> Por lo tanto, **puedes saltarte** los pasos de configuración de MongoDB Atlas y almacenamiento de imágenes.  
+> Solo necesitas desplegar el **frontend** y **backend** a un servidor.
+
+---
+
 ## ⚡ Opción 1: Vercel + Render + MongoDB Atlas (GRATIS PERMANENTE)
 
 ### 📊 Resumen

@@ -1,5 +1,21 @@
 # 🚀 Plan de Despliegue AWS - InstaGur (Capa Gratuita)
 
+> **✅ ESTADO ACTUAL DEL PROYECTO (Actualizado Oct 2025):**  
+> 
+> **Ya configurado y funcionando:**
+> - ✅ **MongoDB Atlas** - Base de datos cloud conectada y probada
+> - ✅ **AWS S3** - Bucket `tuapp-dev-bucket` configurado en `us-east-2`
+> - ✅ **Política S3** - Acceso público de lectura configurado
+> - ✅ **Upload/Delete** - Funcionando perfectamente con S3
+> 
+> **Pendiente de desplegar:**
+> - ⏳ EC2 - Servidor para el backend
+> - ⏳ Frontend - Hosting estático (S3 + CloudFront)
+> 
+> **Ventaja:** Ya tienes 2 de los 4 servicios principales configurados. Solo falta desplegar el código.
+
+---
+
 ## 📋 Resumen de Arquitectura AWS Free Tier
 
 ### Servicios a Utilizar (GRATIS por 12 meses)
@@ -37,11 +53,14 @@
 [CloudFront CDN] → [S3 Bucket - Frontend React]
     ↓
 [EC2 Instance - Backend Node.js] 
-    ↓
-[MongoDB Atlas / DynamoDB]
-    ↓
-[S3 Bucket - Imágenes/Avatares]
+    ↓                    ↓
+[MongoDB Atlas] ✅   [S3 Bucket - Imágenes] ✅
+  (Ya configurado)      (tuapp-dev-bucket)
 ```
+
+**Leyenda:**
+- ✅ = Ya configurado y funcionando
+- ⏳ = Pendiente de configurar
 
 ---
 
