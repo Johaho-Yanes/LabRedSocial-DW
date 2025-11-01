@@ -3,12 +3,14 @@ import User from '../models/User.js';
 import sharp from 'sharp';
 import path from 'path';
 import { promises as fs } from 'fs';
-import { PutObjectCommand } from "@aws-sdk/client-s3";
-import crypto from "crypto";
-import { lookup as mimeLookup } from "mime-types";
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
-import { s3 } from '../middleware/upload.js';
+import { USE_S3 } from '../middleware/upload.js';
+import { 
+  processAndUploadImage, 
+  deleteFromS3,
+  USE_S3 as S3_ENABLED 
+} from '../config/s3.js';
 
 // Para obtener __dirname en ES modules
 const __filename = fileURLToPath(import.meta.url);
@@ -117,24 +119,53 @@ const uploadImage = async (req, res) => {
       });
     }
 
-    // Procesar imagen con Sharp
-    const uploadsDir = path.join(__dirname, '../../uploads');
-    const filename = path.parse(req.file.filename).name;
-    const ext = path.parse(req.file.filename).ext;
+    let imageUrl, thumbnailUrl, metadata;
 
-    // Crear thumbnail
-    const thumbnailFilename = `${filename}-thumb${ext}`;
-    await sharp(req.file.path)
-      .resize(400, 400, { fit: 'cover' })
-      .toFile(path.join(uploadsDir, thumbnailFilename));
+    if (USE_S3) {
+      // ========== MODO S3 (PRODUCCIÓN) ==========
+      console.log('📤 Subiendo imagen a S3...');
+      
+      // Subir imagen original procesada a S3
+      imageUrl = await processAndUploadImage(req.file, req.user._id.toString());
+      
+      // Procesar y subir thumbnail a S3
+      const thumbnailBuffer = await sharp(req.file.buffer)
+        .resize(400, 400, { fit: 'cover' })
+        .jpeg({ quality: 85 })
+        .toBuffer();
+      
+      const { uploadToS3 } = await import('../config/s3.js');
+      const thumbnailFilename = `thumb-${req.user._id}-${Date.now()}.jpg`;
+      thumbnailUrl = await uploadToS3(thumbnailBuffer, thumbnailFilename, 'thumbnails');
+      
+      // Obtener metadata de la imagen
+      metadata = await sharp(req.file.buffer).metadata();
+      
+      console.log('✅ Imagen subida a S3:', imageUrl);
+      
+    } else {
+      // ========== MODO LOCAL (DESARROLLO) ==========
+      console.log('💾 Guardando imagen localmente...');
+      
+      const uploadsDir = path.join(__dirname, '../../uploads');
+      const filename = path.parse(req.file.filename).name;
+      const ext = path.parse(req.file.filename).ext;
 
-    // Obtener metadata
-    const metadata = await sharp(req.file.path).metadata();
+      // Crear thumbnail local
+      const thumbnailFilename = `${filename}-thumb${ext}`;
+      await sharp(req.file.path)
+        .resize(400, 400, { fit: 'cover' })
+        .toFile(path.join(uploadsDir, thumbnailFilename));
 
-    // Crear transformaciones simuladas (URLs)
-    const baseUrl = `${req.protocol}://${req.get('host')}`;
-    const imageUrl = `/uploads/${req.file.filename}`;
-    const thumbnailUrl = `/uploads/${thumbnailFilename}`;
+      // Obtener metadata
+      metadata = await sharp(req.file.path).metadata();
+
+      // URLs locales
+      imageUrl = `/uploads/${req.file.filename}`;
+      thumbnailUrl = `/uploads/${thumbnailFilename}`;
+      
+      console.log('✅ Imagen guardada localmente:', imageUrl);
+    }
 
     // Parsear tags
     const tagsArray = tags ? 
@@ -159,7 +190,7 @@ const uploadImage = async (req, res) => {
         width: metadata.width,
         height: metadata.height,
         format: metadata.format,
-        size: req.file.size
+        size: req.file.size || metadata.size
       }
     });
 
@@ -250,16 +281,36 @@ const deleteImage = async (req, res) => {
       });
     }
 
-    // Eliminar archivos físicos
+    // Eliminar archivos (S3 o local)
     try {
-      const uploadsDir = path.join(__dirname, '../../uploads');
-      const imagePath = path.join(uploadsDir, path.basename(image.url));
-      const thumbnailPath = path.join(uploadsDir, path.basename(image.thumbnail));
+      if (USE_S3) {
+        // ========== MODO S3 ==========
+        console.log('🗑️  Eliminando de S3:', image.url);
+        
+        // Eliminar imagen principal
+        await deleteFromS3(image.url);
+        
+        // Eliminar thumbnail si existe
+        if (image.thumbnail) {
+          await deleteFromS3(image.thumbnail);
+        }
+        
+        console.log('✅ Archivos eliminados de S3');
+        
+      } else {
+        // ========== MODO LOCAL ==========
+        const uploadsDir = path.join(__dirname, '../../uploads');
+        const imagePath = path.join(uploadsDir, path.basename(image.url));
+        const thumbnailPath = path.join(uploadsDir, path.basename(image.thumbnail));
 
-      await fs.unlink(imagePath);
-      await fs.unlink(thumbnailPath);
+        await fs.unlink(imagePath);
+        await fs.unlink(thumbnailPath);
+        
+        console.log('✅ Archivos eliminados localmente');
+      }
     } catch (fileError) {
-      console.error('Error al eliminar archivos físicos:', fileError);
+      console.error('Error al eliminar archivos:', fileError);
+      // No detenemos el proceso si falla la eliminación de archivos
     }
 
     // Eliminar de favoritos de todos los usuarios

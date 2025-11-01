@@ -188,14 +188,22 @@ NODE_ENV=development
 # Opción 1: MongoDB Local
 MONGODB_URI=mongodb://localhost:27017/instagur_dev
 
-# Opción 2: MongoDB Atlas (descomenta y usa tu URI)
-# MONGODB_URI=mongodb+srv://usuario:password@cluster.mongodb.net/instagur?retryWrites=true&w=majority
+# Opción 2: MongoDB Atlas (Cloud - Recomendado)
+# MONGODB_URI=mongodb+srv://<username>:<password>@<cluster>.mongodb.net/<dbname>?retryWrites=true&w=majority&appName=<appName>
 
 # Autenticación (CÁMBIALO a algo seguro)
 JWT_SECRET=genera_un_secreto_seguro_de_al_menos_32_caracteres
 
 # Frontend
 FRONTEND_URL=http://localhost:3003
+
+# AWS S3 (Opcional - para almacenar imágenes en la nube)
+USE_S3=false
+AWS_REGION=us-east-2
+AWS_ACCESS_KEY_ID=your_access_key
+AWS_SECRET_ACCESS_KEY=your_secret_key
+S3_BUCKET=your-bucket-name
+AWS_S3_BUCKET_NAME=your-bucket-name
 ```
 
 ### Generar JWT_SECRET seguro:
@@ -206,6 +214,185 @@ node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 ```
 
 Copia el resultado y pégalo en `JWT_SECRET`.
+
+### 🗄️ Configurar MongoDB Atlas (Cloud Database)
+
+**MongoDB Atlas** es la opción recomendada para desarrollo en equipo y producción. Es gratuito hasta 512MB.
+
+#### Paso 1: Crear cuenta y cluster
+
+1. Ve a https://www.mongodb.com/cloud/atlas
+2. Crea una cuenta gratuita
+3. Crea un nuevo proyecto (ej: "InstaGur")
+4. Haz clic en **"Build a Database"** → **"Create"** (plan M0 Free)
+5. Selecciona:
+   - **Provider**: AWS (recomendado)
+   - **Region**: Una cercana a tus usuarios (ej: US East 1)
+   - **Cluster Name**: Puedes dejarlo por defecto o cambiarlo
+6. Haz clic en **"Create Cluster"** (tarda 3-5 minutos)
+
+#### Paso 2: Crear usuario de base de datos
+
+1. Ve a **Database Access** (en el menú izquierdo)
+2. Haz clic en **"Add New Database User"**
+3. Configura:
+   - **Username**: `instagur_user` (o el que prefieras)
+   - **Password**: Genera una contraseña segura o usa la autogenerada (¡guárdala!)
+   - **Database User Privileges**: "Read and write to any database"
+4. Haz clic en **"Add User"**
+
+#### Paso 3: Permitir acceso desde tu IP
+
+1. Ve a **Network Access** (en el menú izquierdo)
+2. Haz clic en **"Add IP Address"**
+3. Opciones:
+   - **Para desarrollo local**: "Add Current IP Address" (añade tu IP actual)
+   - **Para equipo**: Añade las IPs de cada miembro
+   - **Temporal (NO RECOMENDADO para producción)**: "Allow Access from Anywhere" (0.0.0.0/0)
+4. Haz clic en **"Confirm"**
+
+#### Paso 4: Obtener connection string
+
+1. Ve a **Database** → **Connect**
+2. Selecciona **"Connect your application"**
+3. Copia el connection string (ejemplo):
+   ```
+   mongodb+srv://<username>:<password>@cluster0.xxxxx.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0
+   ```
+4. Reemplaza `<username>` y `<password>` con tus credenciales
+5. Añade el nombre de tu base de datos después del host, ejemplo:
+   ```
+   mongodb+srv://instagur_user:tu_password@cluster0.xxxxx.mongodb.net/instagur_dev?retryWrites=true&w=majority&appName=Cluster0
+   ```
+
+#### Paso 5: Actualizar `.env`
+
+```env
+MONGODB_URI=mongodb+srv://instagur_user:tu_password@cluster0.xxxxx.mongodb.net/instagur_dev?retryWrites=true&w=majority&appName=Cluster0
+```
+
+**⚠️ IMPORTANTE**: Si tu contraseña contiene caracteres especiales (`@`, `:`, `/`, etc.), debes codificarla:
+
+```powershell
+# En Node.js
+node -e "console.log(encodeURIComponent('tu_password_con@caracteres'))"
+```
+
+#### Paso 6: Probar conexión
+
+```powershell
+cd backend
+node .\scripts\test-db-connection.js
+```
+
+Deberías ver:
+```
+✅ Conectado a MongoDB Atlas: ac-xxxxx-shard-00-00.xxxxx.mongodb.net
+📊 Base de datos: instagur_dev
+```
+
+---
+
+### ☁️ Configurar AWS S3 (Cloud Storage para Imágenes)
+
+**AWS S3** permite almacenar imágenes en la nube en lugar de localmente. Útil para producción y equipos.
+
+#### Paso 1: Crear cuenta AWS
+
+1. Ve a https://aws.amazon.com/
+2. Crea una cuenta gratuita (requiere tarjeta de crédito, pero el tier gratuito incluye 5GB en S3)
+3. Accede a la consola: https://console.aws.amazon.com/
+
+#### Paso 2: Crear bucket S3
+
+1. Ve a **S3** en la consola AWS
+2. Haz clic en **"Create bucket"**
+3. Configura:
+   - **Bucket name**: `instagur-images-dev` (debe ser único globalmente)
+   - **Region**: La misma que usarás para EC2 (ej: `us-east-2`)
+   - **Block Public Access**: Desmarca todas las opciones (las imágenes serán públicas)
+   - **Bucket Versioning**: Disabled (para desarrollo)
+4. Haz clic en **"Create bucket"**
+
+#### Paso 3: Configurar política de bucket (hacer público)
+
+1. Ve al bucket recién creado
+2. Tab **"Permissions"** → **"Bucket Policy"**
+3. Añade esta política (reemplaza `YOUR-BUCKET-NAME`):
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "PublicReadGetObject",
+      "Effect": "Allow",
+      "Principal": "*",
+      "Action": "s3:GetObject",
+      "Resource": "arn:aws:s3:::YOUR-BUCKET-NAME/*"
+    }
+  ]
+}
+```
+
+4. Guarda cambios
+
+#### Paso 4: Crear usuario IAM con permisos S3
+
+1. Ve a **IAM** en la consola AWS
+2. **Users** → **"Add users"**
+3. Configura:
+   - **User name**: `instagur-s3-user`
+   - **Access type**: "Access key - Programmatic access"
+4. **Permissions**: "Attach existing policies directly"
+   - Busca y selecciona: **AmazonS3FullAccess** (o crea una política más restrictiva)
+5. **Create user**
+6. **⚠️ IMPORTANTE**: Guarda las credenciales:
+   - **Access Key ID**: `AKIAXXXXXXXXXXXXXXXX`
+   - **Secret Access Key**: `xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx`
+   - Solo se muestran una vez, guárdalas de forma segura
+
+#### Paso 5: Actualizar `.env`
+
+```env
+USE_S3=true
+AWS_REGION=us-east-2
+AWS_ACCESS_KEY_ID=AKIAXXXXXXXXXXXXXXXX
+AWS_SECRET_ACCESS_KEY=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+S3_BUCKET=instagur-images-dev
+AWS_S3_BUCKET_NAME=instagur-images-dev
+```
+
+#### Paso 6: Probar S3 (subir una imagen desde la app)
+
+1. Inicia la aplicación: `npm start`
+2. Regístrate/inicia sesión
+3. Sube una imagen
+4. Verifica en la consola de S3 que la imagen aparece en el bucket
+
+---
+
+### 🔐 Rotación de Credenciales (Seguridad)
+
+**Para producción**, es importante rotar credenciales periódicamente:
+
+#### MongoDB Atlas:
+1. **Database Access** → Edita el usuario → "Edit Password"
+2. Genera nueva contraseña
+3. Actualiza `MONGODB_URI` en producción
+
+#### AWS IAM:
+1. **IAM** → **Users** → `instagur-s3-user` → **Security credentials**
+2. **Create access key** (nueva)
+3. Actualiza `AWS_ACCESS_KEY_ID` y `AWS_SECRET_ACCESS_KEY` en producción
+4. **Delete** las credenciales antiguas después de verificar que las nuevas funcionan
+
+**⚠️ NUNCA** subas credenciales reales a Git. Usa variables de entorno o servicios como:
+- AWS Secrets Manager
+- AWS Systems Manager Parameter Store
+- Variables de entorno en Elastic Beanstalk/ECS
+
+---
 
 ---
 

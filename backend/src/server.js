@@ -33,12 +33,18 @@ if (process.env.NODE_ENV === 'development') {
 // Compresión
 app.use(compression());
 
-// Servir archivos estáticos (uploads) con CORS
-app.use('/uploads', (req, res, next) => {
-  res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  next();
-}, express.static('uploads'));
+// Servir archivos estáticos (uploads) solo si NO usamos S3
+const USE_S3 = (process.env.USE_S3 || 'false') === 'true';
+if (!USE_S3) {
+  console.log('💾 Sirviendo archivos desde /uploads (modo local)');
+  app.use('/uploads', (req, res, next) => {
+    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    next();
+  }, express.static('uploads'));
+} else {
+  console.log('☁️  Usando AWS S3 para almacenamiento de archivos');
+}
 
 // Rutas
 app.use('/api', routes);

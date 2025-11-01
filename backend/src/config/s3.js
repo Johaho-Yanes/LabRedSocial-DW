@@ -2,8 +2,8 @@
 // AWS S3 Storage Configuration
 // ============================================
 
-const { S3Client, PutObjectCommand, DeleteObjectCommand } = require('@aws-sdk/client-s3');
-const sharp = require('sharp');
+import { S3Client, PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
+import sharp from 'sharp';
 
 // Configurar cliente S3
 const s3Client = new S3Client({
@@ -14,8 +14,15 @@ const s3Client = new S3Client({
   },
 });
 
-const BUCKET_NAME = process.env.AWS_S3_BUCKET_NAME;
-const USE_S3 = process.env.USE_S3 === 'true';
+// Nombre del bucket: soportamos dos nombres de variable para compatibilidad
+const BUCKET_NAME = process.env.AWS_S3_BUCKET_NAME || process.env.S3_BUCKET;
+const USE_S3 = (process.env.USE_S3 || 'false') === 'true';
+
+// Validación temprana para ayudar al desarrollador si falta configuración
+if (USE_S3 && !BUCKET_NAME) {
+  console.error('❌ USE_S3 está habilitado pero no se encontró el nombre del bucket (AWS_S3_BUCKET_NAME o S3_BUCKET) en las variables de entorno.');
+  // No hacemos process.exit aquí — solo lo logueamos para desarrollo.
+}
 
 /**
  * Sube una imagen a S3
@@ -36,7 +43,8 @@ async function uploadToS3(buffer, filename, folder = 'images') {
     Key: key,
     Body: buffer,
     ContentType: 'image/jpeg',
-    ACL: 'public-read',
+    // No usamos ACL porque el bucket tiene ACLs desactivadas
+    // El acceso público se controla con la Bucket Policy
   });
 
   await s3Client.send(command);
@@ -110,7 +118,7 @@ async function processAndUploadAvatar(buffer, userId) {
   return await uploadToS3(processedBuffer, filename, 'avatars');
 }
 
-module.exports = {
+export {
   uploadToS3,
   deleteFromS3,
   processAndUploadImage,

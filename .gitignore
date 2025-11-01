@@ -26,6 +26,8 @@ frontend/.vite/
 .env.production.local
 backend/.env
 frontend/.env
+env (copia de seguridad)/
+env*/
 
 # ✅ MANTENER: .env.example (template para el equipo)
 !.env.example

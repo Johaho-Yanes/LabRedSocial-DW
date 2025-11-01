@@ -365,47 +365,72 @@ const uploadAvatar = async (req, res) => {
     const fs = await import('fs');
     const { fileURLToPath } = await import('url');
     const { dirname } = await import('path');
+    const { USE_S3 } = await import('../middleware/upload.js');
+    const { processAndUploadAvatar, deleteFromS3 } = await import('../config/s3.js');
     
     const __filename = fileURLToPath(import.meta.url);
     const __dirname = dirname(__filename);
 
-    // Obtener el usuario actual para ver si tiene un avatar anterior
+    // Obtener el usuario actual
     const currentUser = await User.findById(req.user._id);
     
-    // Si el usuario tiene un avatar anterior y es de nuestro sistema (no URL externa ni default)
-    // eliminarlo del filesystem
-    if (currentUser.avatar && currentUser.avatar.startsWith('/uploads/avatar-')) {
-      const oldAvatarPath = path.join(__dirname, '../..', currentUser.avatar);
+    let avatarUrl;
+    
+    if (USE_S3) {
+      // ========== MODO S3 (PRODUCCIÓN) ==========
+      console.log('📤 Subiendo avatar a S3...');
       
-      // Verificar si el archivo existe antes de eliminarlo
-      if (fs.existsSync(oldAvatarPath)) {
+      // Si tiene avatar anterior en S3, eliminarlo
+      if (currentUser.avatar && currentUser.avatar.includes('s3.amazonaws.com')) {
         try {
-          fs.unlinkSync(oldAvatarPath);
-          console.log(`Avatar anterior eliminado: ${currentUser.avatar}`);
+          await deleteFromS3(currentUser.avatar);
+          console.log('🗑️  Avatar anterior eliminado de S3');
         } catch (err) {
-          console.error('Error al eliminar avatar anterior:', err);
-          // No detenemos el proceso si falla la eliminación
+          console.error('Error al eliminar avatar anterior de S3:', err);
         }
       }
+      
+      // Procesar y subir nuevo avatar a S3
+      avatarUrl = await processAndUploadAvatar(req.file.buffer, req.user._id.toString());
+      console.log('✅ Avatar subido a S3:', avatarUrl);
+      
+    } else {
+      // ========== MODO LOCAL (DESARROLLO) ==========
+      console.log('💾 Guardando avatar localmente...');
+      
+      // Si tiene avatar anterior local, eliminarlo
+      if (currentUser.avatar && currentUser.avatar.startsWith('/uploads/avatar-')) {
+        const oldAvatarPath = path.join(__dirname, '../..', currentUser.avatar);
+        
+        if (fs.existsSync(oldAvatarPath)) {
+          try {
+            fs.unlinkSync(oldAvatarPath);
+            console.log(`🗑️  Avatar anterior eliminado: ${currentUser.avatar}`);
+          } catch (err) {
+            console.error('Error al eliminar avatar anterior:', err);
+          }
+        }
+      }
+
+      // Procesar la imagen: redimensionar a 200x200 y optimizar
+      const avatarFilename = `avatar-${req.user._id}-${Date.now()}.jpg`;
+      const avatarPath = path.join(__dirname, '../../uploads', avatarFilename);
+
+      await sharp(req.file.path)
+        .resize(200, 200, {
+          fit: 'cover',
+          position: 'center'
+        })
+        .jpeg({ quality: 90 })
+        .toFile(avatarPath);
+
+      // Eliminar el archivo temporal original de multer
+      fs.unlinkSync(req.file.path);
+
+      // URL local
+      avatarUrl = `/uploads/${avatarFilename}`;
+      console.log('✅ Avatar guardado localmente:', avatarUrl);
     }
-
-    // Procesar la imagen: redimensionar a 200x200 y optimizar
-    const avatarFilename = `avatar-${req.user._id}-${Date.now()}.jpg`;
-    const avatarPath = path.join(__dirname, '../../uploads', avatarFilename);
-
-    await sharp(req.file.path)
-      .resize(200, 200, {
-        fit: 'cover',
-        position: 'center'
-      })
-      .jpeg({ quality: 90 })
-      .toFile(avatarPath);
-
-    // Eliminar el archivo temporal original de multer
-    fs.unlinkSync(req.file.path);
-
-    // La URL del avatar será relativa al servidor
-    const avatarUrl = `/uploads/${avatarFilename}`;
 
     // Actualizar el usuario con el nuevo avatar
     const user = await User.findByIdAndUpdate(
