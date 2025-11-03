@@ -241,7 +241,7 @@ Copia el resultado y pégalo en `JWT_SECRET`.
    - **Database User Privileges**: "Read and write to any database"
 4. Haz clic en **"Add User"**
 
-#### Paso 3: Permitir acceso desde tu IP
+#### Paso 3: Permitir acceso desde tu IP ⚠️ CRÍTICO
 
 1. Ve a **Network Access** (en el menú izquierdo)
 2. Haz clic en **"Add IP Address"**
@@ -250,6 +250,20 @@ Copia el resultado y pégalo en `JWT_SECRET`.
    - **Para equipo**: Añade las IPs de cada miembro
    - **Temporal (NO RECOMENDADO para producción)**: "Allow Access from Anywhere" (0.0.0.0/0)
 4. Haz clic en **"Confirm"**
+5. ⏳ **Espera 1-2 minutos** hasta que el status cambie a "Active"
+
+**⚠️ Error común**: Si ves este error en la consola:
+
+```
+MongooseError: Operation `users.findOne()` buffering timed out after 10000ms
+❌ Could not connect to any servers in your MongoDB Atlas cluster
+```
+
+**Solución**: Tu IP no está en la whitelist. Vuelve al Paso 3 y añádela.
+
+**Nota**: Si tu proveedor de internet (ISP) cambia tu IP frecuentemente:
+- Usa "Allow Access from Anywhere" (`0.0.0.0/0`) **solo para desarrollo**
+- Para producción, añade únicamente la IP de tu servidor EC2
 
 #### Paso 4: Obtener connection string
 
@@ -668,7 +682,32 @@ chore: mantenimiento
 
 ## 🐛 Solución de Problemas
 
-### Error: "Cannot connect to MongoDB"
+### Error: "MongooseError: buffering timed out" o "Could not connect to any servers"
+
+**Síntomas:**
+```
+MongooseError: Operation `users.findOne()` buffering timed out after 10000ms
+❌ Could not connect to any servers in your MongoDB Atlas cluster
+```
+
+**Causa:** Tu dirección IP no está en la whitelist de MongoDB Atlas.
+
+**Solución:**
+1. Ve a [MongoDB Atlas](https://cloud.mongodb.com/)
+2. Selecciona tu proyecto → **Network Access** (menú izquierdo)
+3. Haz clic en **"Add IP Address"**
+4. Opciones:
+   - **"Add Current IP Address"** (recomendado para desarrollo)
+   - **"Allow Access from Anywhere"** (0.0.0.0/0) - solo para desarrollo/testing
+5. Haz clic en **"Confirm"**
+6. ⏳ Espera 1-2 minutos hasta que el status sea "Active"
+7. Reinicia tu aplicación
+
+**Nota:** Si tu ISP cambia tu IP frecuentemente, usa "Allow Access from Anywhere" para desarrollo local.
+
+---
+
+### Error: "Cannot connect to MongoDB" (local)
 
 ```powershell
 # Verificar que MongoDB está corriendo

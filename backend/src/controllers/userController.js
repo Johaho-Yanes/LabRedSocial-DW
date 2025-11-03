@@ -23,15 +23,21 @@ const registerUser = async (req, res) => {
       });
     }
 
-    // Verificar si el usuario ya existe
-    const userExists = await User.findOne({
-      $or: [{ email }, { username }]
-    });
-
-    if (userExists) {
+    // Verificar si el email ya existe
+    const emailExists = await User.findOne({ email });
+    if (emailExists) {
       return res.status(400).json({
         success: false,
-        message: 'El usuario o email ya existe'
+        message: 'Este email ya está registrado'
+      });
+    }
+
+    // Verificar si el username ya existe
+    const usernameExists = await User.findOne({ username });
+    if (usernameExists) {
+      return res.status(400).json({
+        success: false,
+        message: 'Este nombre de usuario ya está en uso'
       });
     }
 
@@ -147,28 +153,51 @@ const updateUserProfile = async (req, res) => {
   try {
     const user = await User.findById(req.user._id);
 
-    if (user) {
-      user.username = req.body.username || user.username;
-      user.email = req.body.email || user.email;
-      user.bio = req.body.bio !== undefined ? req.body.bio : user.bio;
-      user.avatar = req.body.avatar || user.avatar;
-
-      if (req.body.password) {
-        user.password = req.body.password;
-      }
-
-      const updatedUser = await user.save();
-
-      res.json({
-        success: true,
-        data: updatedUser.toPublicJSON()
-      });
-    } else {
-      res.status(404).json({
+    if (!user) {
+      return res.status(404).json({
         success: false,
         message: 'Usuario no encontrado'
       });
     }
+
+    // Si intenta cambiar el email, verificar que no esté en uso
+    if (req.body.email && req.body.email !== user.email) {
+      const emailExists = await User.findOne({ email: req.body.email });
+      if (emailExists) {
+        return res.status(400).json({
+          success: false,
+          message: 'Este email ya está registrado por otro usuario'
+        });
+      }
+      user.email = req.body.email;
+    }
+
+    // Si intenta cambiar el username, verificar que no esté en uso
+    if (req.body.username && req.body.username !== user.username) {
+      const usernameExists = await User.findOne({ username: req.body.username });
+      if (usernameExists) {
+        return res.status(400).json({
+          success: false,
+          message: 'Este nombre de usuario ya está en uso por otro usuario'
+        });
+      }
+      user.username = req.body.username;
+    }
+
+    // Actualizar otros campos
+    user.bio = req.body.bio !== undefined ? req.body.bio : user.bio;
+    user.avatar = req.body.avatar || user.avatar;
+
+    if (req.body.password) {
+      user.password = req.body.password;
+    }
+
+    const updatedUser = await user.save();
+
+    res.json({
+      success: true,
+      data: updatedUser.toPublicJSON()
+    });
   } catch (error) {
     console.error('Error al actualizar perfil:', error);
     res.status(500).json({
