@@ -23,10 +23,10 @@ echo -e "${BLUE}📦 Actualizando sistema...${NC}"
 apt update && apt upgrade -y
 
 # ============================================
-# 2. Instalar Node.js 18
+# 2. Instalar Node.js 22 (LTS)
 # ============================================
-echo -e "${BLUE}📦 Instalando Node.js 18...${NC}"
-curl -fsSL https://deb.nodesource.com/setup_18.x | bash -
+echo -e "${BLUE}📦 Instalando Node.js 22...${NC}"
+curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
 apt install -y nodejs
 
 # Verificar instalación
