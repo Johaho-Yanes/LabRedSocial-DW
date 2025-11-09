@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Grid3x3, User, FileText, AlertCircle, Mail, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,6 +9,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { authService } from "@/services/authService";
+import { userService } from "@/services/userService";
 import type { UserData } from "@/types";
 
 interface WelcomePageProps {
@@ -16,44 +17,60 @@ interface WelcomePageProps {
 }
 
 export function WelcomePage({ onLogin }: WelcomePageProps) {
-  const [isLoading, setIsLoading] = useState(false);
+   const [isLoading, setIsLoading] = useState(false);
   const [recaptchaVerified, setRecaptchaVerified] = useState(false);
   const [showProfileSetup, setShowProfileSetup] = useState(false);
   const [username, setUsername] = useState("");
   const [bio, setBio] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [isSetupFlow, setIsSetupFlow] = useState(false);
 
-  // Autenticación con Google - modo Login (directo)
-  const handleGoogleLogin = async () => {
+  
+  
+
+  ///pueba
+
+  // Autenticación con Google - modo Login (flujo real)
+const handleGoogleLogin = async () => {
+  try {
     setIsLoading(true);
-    // Aquí se integraría con Google OAuth para login directo
-    // Ejemplo: const { data, error } = await supabase.auth.signInWithOAuth({ provider: 'google' })
     
-    setTimeout(() => {
-      setIsLoading(false);
-      // Login directo sin requerir username/bio
-      onLogin({
-        username: "Usuario Google",
-        bio: "Perfil de Google",
-        avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=google${Date.now()}`,
-      });
-    }, 1500);
-  };
+    // Guardamos la URL de retorno deseada (dashboard) en localStorage
+    localStorage.setItem('returnTo', '/dashboard');
+    
+    // Redirige al backend donde inicia el flujo de OAuth con Google
+    // El backend (Passport) gestionará la autenticación y luego redirigirá al frontend
+    window.location.href = "http://localhost:5000/api/auth/google";
+    
+  } catch (error) {
+    console.error("Error al iniciar sesión con Google:", error);
+    alert("Ocurrió un error al conectar con Google. Intenta nuevamente.");
+    setIsLoading(false);
+  }
+};
+
+
+
 
   // Autenticación con Google - modo Register (requiere perfil)
   const handleGoogleRegister = async () => {
     setIsLoading(true);
     // Aquí se integraría con Google OAuth para registro
     // Ejemplo: const { data, error } = await supabase.auth.signInWithOAuth({ provider: 'google' })
-    
+    window.location.href = "http://localhost:5000/api/auth/google";
+
+
     setTimeout(() => {
       setIsLoading(false);
       // Mostrar formulario de configuración de perfil
       setShowProfileSetup(true);
     }, 1500);
   };
-
+ 
+ 
+ 
+ 
   // Login con email/contraseña (directo, sin perfil)
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -99,14 +116,24 @@ export function WelcomePage({ onLogin }: WelcomePageProps) {
     setIsLoading(false);
   };
 
+  // Espera a que grecaptcha esté listo (con timeout)
+  const waitForGrecaptcha = (timeout = 5000) => {
+    return new Promise<void>((resolve, reject) => {
+      const start = Date.now();
+      const check = () => {
+        if ((window as any).grecaptcha && typeof (window as any).grecaptcha.execute === 'function') {
+          return resolve();
+        }
+        if (Date.now() - start > timeout) return reject(new Error('grecaptcha not ready'));
+        setTimeout(check, 200);
+      };
+      check();
+    });
+  };
+
   // Completar configuración de perfil (username y bio)
   const handleCompleteProfileSetup = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!recaptchaVerified) {
-      alert("Por favor, verifica el reCAPTCHA");
-      return;
-    }
 
     if (!username.trim() || !bio.trim()) {
       alert("Por favor, completa todos los campos");
@@ -115,18 +142,72 @@ export function WelcomePage({ onLogin }: WelcomePageProps) {
 
     setIsLoading(true);
     try {
-      const response = await authService.register({
-        username: username.trim(),
-        email,
-        password,
-        bio: bio.trim(),
-      });
-      onLogin({
-        username: response.data.username,
-        email: response.data.email,
-        bio: response.data.bio,
-        avatar: response.data.avatar,
-      });
+      // Obtener token reCAPTCHA si está disponible (v3)
+      let recaptchaToken = '';
+      const siteKey = import.meta.env.VITE_RECAPTCHA_SITE_KEY as string | undefined;
+      if (siteKey) {
+        try {
+          // Esperar a que la librería esté lista
+          await waitForGrecaptcha(6000);
+          recaptchaToken = await (window as any).grecaptcha.execute(siteKey, { action: 'submit' });
+          setRecaptchaVerified(true);
+        } catch (err: any) {
+          console.error('Error ejecutando grecaptcha:', err);
+          // Si no estamos en producción, permitir fallback para desarrollo
+          if (!import.meta.env.PROD) {
+            console.warn('grecaptcha falló pero estamos en desarrollo — usando token de desarrollo');
+            recaptchaToken = 'dev-bypass';
+            setRecaptchaVerified(true);
+          } else {
+            alert('No se pudo verificar reCAPTCHA. Intenta recargar la página.');
+            setIsLoading(false);
+            return;
+          }
+        }
+      } else {
+        // No hay clave de site: requerir el checkbox simulado
+        if (!recaptchaVerified) {
+          alert('Por favor, verifica el reCAPTCHA (marca la casilla)');
+          setIsLoading(false);
+          return;
+        }
+      }
+
+      // Si estamos en el flujo de completado (OAuth), llamamos a updateProfile
+      if (isSetupFlow || localStorage.getItem('needsSetup') === 'true') {
+        const updated = await userService.updateProfile({
+          username: username.trim(),
+          bio: bio.trim(),
+          recaptchaToken: recaptchaToken || undefined
+        });
+
+        const userData: UserData = {
+          username: updated.username,
+          email: updated.email,
+          bio: updated.bio,
+          avatar: updated.avatar
+        };
+
+        // Guardar y limpiar bandera
+        localStorage.setItem('user', JSON.stringify(userData));
+        localStorage.removeItem('needsSetup');
+        onLogin(userData);
+      } else {
+        const response = await authService.register({
+          username: username.trim(),
+          email,
+          password,
+          bio: bio.trim(),
+          // enviar recaptchaToken si lo obtuvimos
+          ...(recaptchaToken ? { recaptchaToken } : {})
+        });
+        onLogin({
+          username: response.data.username,
+          email: response.data.email,
+          bio: response.data.bio,
+          avatar: response.data.avatar,
+        });
+      }
     } catch (error: any) {
       alert(error.response?.data?.message || "Error al registrar usuario");
     } finally {
@@ -134,12 +215,63 @@ export function WelcomePage({ onLogin }: WelcomePageProps) {
     }
   };
 
+  // Detectar si venimos del flujo de OAuth que requiere completar perfil o procesar parámetros de URL
+  useEffect(() => {
+    // Obtener parámetros de la URL
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get('token');
+    const userParam = params.get('user');
+    const setupParam = params.get('setup');
+
+    if (token && userParam) {
+      try {
+        // Guardar token y datos del usuario
+        localStorage.setItem('token', token);
+        const userData = JSON.parse(decodeURIComponent(userParam));
+        localStorage.setItem('user', JSON.stringify(userData));
+
+        if (setupParam === 'true') {
+          // Si necesita completar el perfil
+          setShowProfileSetup(true);
+          setIsSetupFlow(true);
+          localStorage.setItem('needsSetup', 'true');
+        } else {
+          // Redirigir al dashboard
+          window.location.href = '/dashboard';
+        }
+
+        // Limpiar la URL
+        window.history.replaceState({}, document.title, window.location.pathname);
+      } catch (error) {
+        console.error('Error procesando datos de autenticación:', error);
+      }
+      return;
+    }
+
+    // Lógica existente para setup y reCAPTCHA
+    const needs = localStorage.getItem('needsSetup');
+    if (needs === 'true') {
+      setShowProfileSetup(true);
+      setIsSetupFlow(true);
+    }
+
+    // Cargar script de reCAPTCHA v3 dinámicamente si existe la clave
+    const siteKey = import.meta.env.VITE_RECAPTCHA_SITE_KEY as string | undefined;
+    if (siteKey && !(window as any).grecaptcha) {
+      const script = document.createElement('script');
+      script.src = `https://www.google.com/recaptcha/api.js?render=${siteKey}`;
+      script.async = true;
+      document.body.appendChild(script);
+    }
+  }, []);
+
   // Simular verificación de reCAPTCHA
   const handleRecaptchaVerify = () => {
     // Aquí se integraría con Google reCAPTCHA v3
     // Ejemplo: grecaptcha.execute('YOUR_SITE_KEY', {action: 'submit'})
     setRecaptchaVerified(true);
   };
+
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50 dark:from-gray-900 dark:via-purple-900 dark:to-pink-900">
@@ -395,19 +527,40 @@ export function WelcomePage({ onLogin }: WelcomePageProps) {
                     </div>
                   </div>
 
-                  {/* Simulación de reCAPTCHA */}
+
+                  {/* Simulación / control visual de reCAPTCHA (checkbox + logo + leyenda) */}
                   <div className="border rounded-lg p-4 bg-muted/30">
-                    <div className="flex items-center gap-3">
-                      <input
-                        type="checkbox"
-                        id="recaptcha-register"
-                        className="h-5 w-5"
-                        onChange={handleRecaptchaVerify}
-                      />
-                      <label htmlFor="recaptcha-register" className="text-sm">
-                        No soy un robot (reCAPTCHA simulado)
-                      </label>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        {/* Checkbox a la izquierda para marcar verificación */}
+                        <input
+                          type="checkbox"
+                          id="recaptcha-register"
+                          className="h-5 w-5"
+                          checked={recaptchaVerified}
+                          onChange={(e) => setRecaptchaVerified(e.target.checked)}
+                        />
+
+                        {/* Logo: coloca tu imagen en `frontend/public/recaptcha-logo.png` */}
+                        <img
+                          src="/recaptcha-logo.png"
+                          alt="reCAPTCHA logo"
+                          className="h-8 w-8 object-contain"
+                          onError={() => {
+                            // Si la imagen no existe, no romperá la UI
+                            console.warn('recaptcha logo no encontrado en /recaptcha-logo.png');
+                          }}
+                        />
+
+                        <div>
+                          <div className="text-sm font-medium">reCAPTCHA</div>
+                          <div className="text-xs text-muted-foreground">Verificación anti-bots</div>
+                        </div>
+                      </div>
+
+                      <div className="text-xs text-muted-foreground">{recaptchaVerified ? 'Listo' : 'No verificado'}</div>
                     </div>
+                    
                   </div>
 
                   <Button
@@ -423,11 +576,16 @@ export function WelcomePage({ onLogin }: WelcomePageProps) {
                     variant="ghost"
                     className="w-full"
                     onClick={() => {
+                      // Volver al formulario principal de login/registro
                       setShowProfileSetup(false);
+                      setIsSetupFlow(false);
+                      // Limpiar campos locales
                       setEmail("");
                       setPassword("");
                       setUsername("");
                       setBio("");
+                      // Si había una bandera de setup guardada, eliminarla para permitir volver al flujo normal
+                      localStorage.removeItem('needsSetup');
                     }}
                   >
                     Volver

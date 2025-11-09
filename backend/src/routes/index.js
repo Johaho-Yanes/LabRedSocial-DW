@@ -5,6 +5,11 @@ const router = express.Router();
 import userRoutes from './userRoutes.js';
 import imageRoutes from './imageRoutes.js';
 import messageRoutes from './messageRoutes.js';
+import authRoutes from './auth.js';
+
+// Rutas de autenticación
+router.use('/auth', authRoutes);  
+
 
 // Usar rutas
 router.use('/users', userRoutes);

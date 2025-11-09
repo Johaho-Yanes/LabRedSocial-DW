@@ -7,6 +7,16 @@ import compression from 'compression';
 import connectDB from './config/database.js';
 import routes from './routes/index.js';
 
+
+//Google
+import bodyParser from "body-parser";
+import passport from "passport";
+import authRoutes from "./routes/auth.js";
+import "./config/passportGoogle.js"; // inicializa GoogleStrategy
+
+
+
+
 const app = express();
 
 // Conectar a MongoDB
@@ -14,6 +24,12 @@ connectDB();
 
 // Middleware de seguridad
 app.use(helmet());
+//google
+app.use(bodyParser.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(passport.initialize());
+
+
 
 // Configurar CORS
 app.use(cors({
@@ -48,6 +64,13 @@ if (!USE_S3) {
 
 // Rutas
 app.use('/api', routes);
+
+// ========================
+// Rutas de autenticación Google
+// ========================
+app.use('/api/auth', authRoutes); // ya contiene /google y /google/callback
+
+
 
 // Ruta de prueba
 app.get('/', (req, res) => {
