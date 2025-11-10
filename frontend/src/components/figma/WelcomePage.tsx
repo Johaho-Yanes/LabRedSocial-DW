@@ -41,7 +41,9 @@ const handleGoogleLogin = async () => {
     
     // Redirige al backend donde inicia el flujo de OAuth con Google
     // El backend (Passport) gestionará la autenticación y luego redirigirá al frontend
-    window.location.href = "http://localhost:5000/api/auth/google";
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+    const baseUrl = apiUrl.replace('/api', '');
+    window.location.href = `${baseUrl}/api/auth/google`;
     
   } catch (error) {
     console.error("Error al iniciar sesión con Google:", error);
@@ -58,7 +60,9 @@ const handleGoogleLogin = async () => {
     setIsLoading(true);
     // Aquí se integraría con Google OAuth para registro
     // Ejemplo: const { data, error } = await supabase.auth.signInWithOAuth({ provider: 'google' })
-    window.location.href = "http://localhost:5000/api/auth/google";
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+    const baseUrl = apiUrl.replace('/api', '');
+    window.location.href = `${baseUrl}/api/auth/google`;
 
 
     setTimeout(() => {

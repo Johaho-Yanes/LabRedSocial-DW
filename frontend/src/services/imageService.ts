@@ -2,7 +2,8 @@ import api from '../lib/api';
 import type { ImageData } from '../types';
 
 // URL base del backend para archivos estáticos
-const BACKEND_URL = 'http://localhost:5000';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const BACKEND_URL = API_URL.replace('/api', '');
 
 // Función para convertir URLs relativas a absolutas
 const getFullImageUrl = (relativeUrl: string): string => {

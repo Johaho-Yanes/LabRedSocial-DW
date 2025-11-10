@@ -64,10 +64,11 @@ export function UserProfile({ user, userImages, following, isOwnProfile = false,
         const authorUsername = img.author?.username || 'unknown';
         const authorAvatar = img.author?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${authorUsername}`;
         
+        // URLs ya vienen completas desde el backend (S3)
         return {
           id: img._id,
-          url: img.url?.startsWith('http') ? img.url : `http://localhost:5000${img.url}`,
-          thumbnail: img.thumbnail?.startsWith('http') ? img.thumbnail : `http://localhost:5000${img.thumbnail}`,
+          url: img.url,
+          thumbnail: img.thumbnail || img.url,
           title: img.title || 'Sin título',
           description: img.description || '',
           tags: img.tags || [],
@@ -83,10 +84,10 @@ export function UserProfile({ user, userImages, following, isOwnProfile = false,
           timestamp: img.createdAt ? formatTimestamp(img.createdAt) : 'Fecha desconocida',
           createdAt: img.createdAt || new Date().toISOString(),
           transformations: {
-            original: img.url?.startsWith('http') ? img.url : `http://localhost:5000${img.url}`,
-            sepia: img.url?.startsWith('http') ? img.url : `http://localhost:5000${img.url}`,
-            bw: img.url?.startsWith('http') ? img.url : `http://localhost:5000${img.url}`,
-            mirrored: img.url?.startsWith('http') ? img.url : `http://localhost:5000${img.url}`
+            original: img.url,
+            sepia: img.url,
+            bw: img.url,
+            mirrored: img.url
           }
         };
       }).filter(Boolean); // Filtrar null values
@@ -126,11 +127,9 @@ export function UserProfile({ user, userImages, following, isOwnProfile = false,
   const handleSaveProfile = async () => {
     try {
       await userService.updateProfile({
-        username: editedUsername,
         bio: editedBio
       });
       setIsEditingProfile(false);
-      // Recargar la página para actualizar los datos
       window.location.reload();
     } catch (error) {
       console.error('Error al actualizar perfil:', error);

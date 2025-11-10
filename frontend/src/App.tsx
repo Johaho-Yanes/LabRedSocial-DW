@@ -14,8 +14,8 @@ type ViewType = "welcome" | "home" | "profile" | "otherProfile" | "imageViewer";
 
 export default function App() {
   const [currentView, setCurrentView] = useState<ViewType>("welcome");
-  const [viewHistory, setViewHistory] = useState<ViewType[]>([]); // Historial de navegación
-  const [activeProfileTab, setActiveProfileTab] = useState<string>("images"); // Guardar pestaña activa del perfil
+  const [viewHistory, setViewHistory] = useState<ViewType[]>([]);
+  const [activeProfileTab, setActiveProfileTab] = useState<string>("images");
   const [currentUser, setCurrentUser] = useState<UserData | null>(null);
   const [allImages, setAllImages] = useState<ImageData[]>([]);
   const [allUsers, setAllUsers] = useState<FollowingUser[]>([]);
@@ -82,13 +82,11 @@ export default function App() {
     }
   };
 
-  // Navegar a una vista y guardar en historial
   const navigateToView = (view: ViewType) => {
     setViewHistory((prev) => [...prev, currentView]);
     setCurrentView(view);
   };
 
-  // Volver a la vista anterior del historial
   const navigateBack = () => {
     setViewHistory((prev) => {
       const newHistory = [...prev];
