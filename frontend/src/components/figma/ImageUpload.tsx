@@ -1,5 +1,6 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { X, Upload, Image as ImageIcon, Loader2, AlertCircle, CheckCircle2, Sparkles } from "lucide-react";
+import { FaceMarker } from "./FaceMarker";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
@@ -9,6 +10,30 @@ import { Badge } from "../ui/badge";
 import { Alert, AlertDescription } from "../ui/alert";
 import type { ImageData, UserData } from "@/types";
 import { imageService } from "@/services/imageService";
+import { visionService } from "@/services/visionService";
+
+// Configuración y constantes
+const MAX_FACES = 20; // Límite máximo de rostros a detectar
+const RECOMMENDED_FACES = 10; // Número recomendado de rostros
+
+// Traducciones de emociones y etiquetas
+const emotionTranslations: { [key: string]: string } = {
+  'joy': 'alegría',
+  'sorrow': 'tristeza',
+  'anger': 'enojo',
+  'surprise': 'sorpresa',
+  'neutral': 'neutral',
+  'contempt': 'desprecio',
+  'fear': 'miedo',
+  'disgust': 'asco'
+};
+
+interface EmotionWithPercentage {
+  emotion: string;
+  spanishEmotion: string;
+  confidence: number;
+  percentage: number;
+}
 
 interface ImageUploadProps {
   onClose: () => void;
@@ -27,20 +52,154 @@ export function ImageUpload({ onClose, onUpload, currentUser }: ImageUploadProps
   const [processingStage, setProcessingStage] = useState("");
   const [detectionResults, setDetectionResults] = useState<{
     faces?: number;
-    emotions?: string[];
+    emotions?: EmotionWithPercentage[];
+    emotionsByFace?: EmotionWithPercentage[][];
+    dominantEmotion?: string;
+    suggestedTags?: string[];
     labels?: string[];
   } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const imageRef = useRef<HTMLImageElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [faces, setFaces] = useState<Array<{
+    position: {
+      left: number;
+      top: number;
+      width: number;
+      height: number;
+    };
+  }>>([]);
+  const [faceWarning, setFaceWarning] = useState<{
+    type: 'warning' | 'error' | 'info';
+    message: string;
+  } | null>(null);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file && file.type.startsWith("image/")) {
-      setSelectedFile(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setPreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+      setFaceWarning(null);
+      processImage(file);
+    }
+  };
+
+  const processImage = async (file: File) => {
+    if (file.size > 10 * 1024 * 1024) { // 10MB
+      alert("La imagen es demasiado grande. El tamaño máximo permitido es 10MB.");
+      return;
+    }
+
+    setSelectedFile(file);
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setPreview(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+
+    // Iniciar análisis facial
+    setIsProcessing(true);
+    setProcessingStage("Analizando imagen con Cloud Vision API...");
+    
+    try {
+      const analysis = await visionService.analyzeFaces(file);
+      console.log('Análisis recibido:', analysis);
+      
+      // Manejar el número de rostros detectados
+      if (analysis.faces.length === 0) {
+        setFaceWarning({
+          type: 'info',
+          message: 'No se detectaron rostros en la imagen.'
+        });
+      } else if (analysis.faces.length > MAX_FACES) {
+        setFaceWarning({
+          type: 'error',
+          message: `Se detectaron ${analysis.faces.length} rostros. Solo se analizarán los primeros ${MAX_FACES} rostros.`
+        });
+        // Limitar el número de rostros procesados
+        analysis.faces = analysis.faces.slice(0, MAX_FACES);
+      } else if (analysis.faces.length > RECOMMENDED_FACES) {
+        setFaceWarning({
+          type: 'warning',
+          message: `Se detectaron ${analysis.faces.length} rostros. Para un mejor análisis, se recomienda usar imágenes con ${RECOMMENDED_FACES} rostros o menos.`
+        });
+      } else {
+        setFaceWarning(null);
+      }
+      
+      // Guardar las posiciones de los rostros
+      setFaces(analysis.faces.map(face => ({
+        position: face.position
+      })));
+      
+      // Procesar emociones por cada rostro
+      const emotionsByFace = analysis.faces.map(face => {
+        const faceEmotions = face.emotions.map(emotion => ({
+          emotion: emotion.emotion,
+          spanishEmotion: emotionTranslations[emotion.emotion] || emotion.emotion,
+          confidence: emotion.confidence,
+          percentage: Math.round(emotion.confidence * 100)
+        }));
+        return faceEmotions.sort((a, b) => b.confidence - a.confidence);
+      });
+
+      // Procesar todas las emociones combinadas
+      const allEmotions = analysis.faces.flatMap(face => face.emotions);
+      
+      // Asegurar que tenemos al menos 6 emociones diferentes
+      const baseEmotions = [
+        { emotion: 'joy', confidence: 0 },
+        { emotion: 'sorrow', confidence: 0 },
+        { emotion: 'anger', confidence: 0 },
+        { emotion: 'surprise', confidence: 0 },
+        { emotion: 'neutral', confidence: 0 },
+        { emotion: 'fear', confidence: 0 }
+      ];
+
+      // Combinar las emociones detectadas con las base
+      const processedEmotions = allEmotions.map(emotion => ({
+        emotion: emotion.emotion,
+        spanishEmotion: emotionTranslations[emotion.emotion] || emotion.emotion,
+        confidence: emotion.confidence,
+        percentage: Math.round(emotion.confidence * 100)
+      }));
+
+      baseEmotions.forEach(baseEmotion => {
+        if (!processedEmotions.find(e => e.emotion === baseEmotion.emotion)) {
+          processedEmotions.push({
+            emotion: baseEmotion.emotion,
+            spanishEmotion: emotionTranslations[baseEmotion.emotion] || baseEmotion.emotion,
+            confidence: 0,
+            percentage: 0
+          });
+        }
+      });
+
+      // Encontrar la emoción dominante
+      const dominantEmotion = processedEmotions
+        .sort((a, b) => b.confidence - a.confidence)[0];
+
+      // Generar tags sugeridos en español
+      const suggestedTags = [
+        analysis.faceCount > 1 ? 'grupo' : 'retrato',
+        dominantEmotion?.spanishEmotion || 'expresivo',
+        analysis.faceCount > 3 ? 'multitud' : 'personas',
+      ];
+
+      setDetectionResults({
+        faces: analysis.faceCount,
+        emotions: processedEmotions,
+        emotionsByFace: emotionsByFace,
+        dominantEmotion: dominantEmotion.emotion,
+        suggestedTags,
+        labels: []
+      });
+
+      // Pre-llenar el campo de tags con las sugerencias
+      setTags(suggestedTags.join(', '));
+    } catch (error) {
+      console.error("Error al analizar la imagen:", error);
+      alert("No se pudo analizar la imagen. Por favor, intenta con otra.");
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -48,12 +207,10 @@ export function ImageUpload({ onClose, onUpload, currentUser }: ImageUploadProps
     e.preventDefault();
     const file = e.dataTransfer.files[0];
     if (file && file.type.startsWith("image/")) {
-      setSelectedFile(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setPreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+      setFaceWarning(null);
+      processImage(file);
+    } else {
+      alert("Por favor, arrastra solo archivos de imagen (JPG, PNG, GIF, WebP)");
     }
   };
 
@@ -126,7 +283,10 @@ export function ImageUpload({ onClose, onUpload, currentUser }: ImageUploadProps
       setProcessingStage("¡Procesamiento completado!");
       setDetectionResults({
         faces: newImage.faceDetection?.facesDetected || 0,
-        emotions: newImage.faceDetection?.emotions,
+        emotions: detectionResults?.emotions || [],
+        emotionsByFace: detectionResults?.emotionsByFace || [],
+        dominantEmotion: detectionResults?.dominantEmotion,
+        suggestedTags: detectionResults?.suggestedTags,
         labels: newImage.rekognition?.labels,
       });
       
@@ -172,9 +332,14 @@ export function ImageUpload({ onClose, onUpload, currentUser }: ImageUploadProps
               <p className="text-foreground mb-2">
                 Arrastra una imagen aquí o haz clic para seleccionar
               </p>
-              <p className="text-sm text-muted-foreground">
-                Formatos soportados: JPG, PNG, WebP
-              </p>
+              <div className="space-y-2">
+                <p className="text-sm text-muted-foreground">
+                  Formatos soportados: JPG, PNG, GIF, WebP
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Tamaño máximo: 10MB • Resolución recomendada: mínimo 800x600px
+                </p>
+              </div>
               <input
                 ref={fileInputRef}
                 type="file"
@@ -186,12 +351,28 @@ export function ImageUpload({ onClose, onUpload, currentUser }: ImageUploadProps
           ) : (
             <div className="space-y-6">
               {/* Preview */}
-              <div className="relative rounded-lg overflow-hidden bg-muted">
+              <div className="relative rounded-lg overflow-hidden bg-muted" ref={containerRef}>
                 <img
+                  ref={imageRef}
                   src={preview}
                   alt="Preview"
                   className="w-full max-h-96 object-contain"
+                  onLoad={(e) => {
+                    // Asegurarse de que la imagen esté completamente cargada antes de mostrar los marcadores
+                    if (faces.length > 0) {
+                      setFaces([...faces]); // Forzar re-render
+                    }
+                  }}
                 />
+                {faces.map((face, index) => (
+                  <FaceMarker
+                    key={index}
+                    face={face}
+                    index={index}
+                    imageRef={imageRef.current}
+                    containerRef={containerRef.current}
+                  />
+                ))}
                 <Button
                   variant="secondary"
                   size="sm"
@@ -200,6 +381,8 @@ export function ImageUpload({ onClose, onUpload, currentUser }: ImageUploadProps
                     setSelectedFile(null);
                     setPreview("");
                     setDetectionResults(null);
+                    setFaces([]);
+                    setFaceWarning(null);
                   }}
                 >
                   <X className="h-4 w-4 mr-1" />
@@ -217,34 +400,95 @@ export function ImageUpload({ onClose, onUpload, currentUser }: ImageUploadProps
                 </Alert>
               )}
 
+              {/* Face Detection Warning */}
+              {faceWarning && (
+                <Alert variant={
+                  faceWarning.type === 'error' ? 'destructive' :
+                  faceWarning.type === 'warning' ? 'default' : 'secondary'
+                }>
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription className="flex items-center gap-2">
+                    {faceWarning.message}
+                  </AlertDescription>
+                </Alert>
+              )}
+
               {/* Detection Results */}
               {detectionResults && !isProcessing && (
                 <Alert className="bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800">
                   <CheckCircle2 className="h-4 w-4 text-green-600" />
                   <AlertDescription>
-                    <div className="space-y-2">
+                    <div className="space-y-3">
                       <p className="flex items-center gap-2 font-medium">
                         <Sparkles className="h-4 w-4" />
-                        <span>Procesamiento completado exitosamente</span>
+                        <span>Análisis de imagen completado</span>
                       </p>
-                      <div className="flex flex-wrap gap-2 mt-2">
-                        {detectionResults.faces !== undefined && (
-                          <Badge variant="secondary">
-                            {detectionResults.faces} {detectionResults.faces === 1 ? "rostro detectado" : "rostros detectados"}
-                          </Badge>
+                      
+                      {/* Resultados del análisis facial */}
+                      <div className="space-y-2">
+                        <h4 className="text-sm font-medium">Análisis Facial:</h4>
+                        <Badge variant="secondary" className="text-sm">
+                          {detectionResults.faces} {detectionResults.faces === 1 ? "rostro detectado" : "rostros detectados"}
+                        </Badge>
+                        
+                        {/* Análisis de emociones por rostro */}
+                        {detectionResults.emotionsByFace && detectionResults.emotionsByFace.length > 0 && (
+                          <div className="space-y-3">
+                            <p className="text-sm font-medium">Análisis por rostro:</p>
+                            {detectionResults.emotionsByFace.map((faceEmotions, index) => (
+                              <div key={index} className="space-y-2 border-l-2 pl-3 py-1">
+                                <p className="text-sm font-medium">Rostro {index + 1}:</p>
+                                <div className="space-y-1">
+                                  {faceEmotions.map((emotion, eIndex) => (
+                                    <div key={eIndex} className="flex items-center justify-between text-sm">
+                                      <span className="capitalize">{emotion.spanishEmotion}</span>
+                                      <div className="flex items-center gap-2">
+                                        <div className="w-24 h-2 bg-gray-200 rounded-full overflow-hidden">
+                                          <div
+                                            className="h-full bg-blue-500 rounded-full"
+                                            style={{ width: `${emotion.percentage}%` }}
+                                          />
+                                        </div>
+                                        <span className="text-xs w-12 text-right">{emotion.percentage}%</span>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            ))}
+
+                            {/* Emoción dominante */}
+                            {detectionResults.dominantEmotion && (
+                              <div className="mt-3 pt-3 border-t">
+                                <p className="text-sm">
+                                  Emoción predominante: <span className="font-medium capitalize">{emotionTranslations[detectionResults.dominantEmotion]}</span>
+                                </p>
+                              </div>
+                            )}
+                          </div>
                         )}
-                        {detectionResults.labels?.map((label) => (
-                          <Badge key={label} variant="outline">
-                            {label}
-                          </Badge>
-                        ))}
                       </div>
+
+                      {/* Tags sugeridos */}
+                      {detectionResults.suggestedTags && (
+                        <div className="space-y-1">
+                          <p className="text-sm font-medium">Tags sugeridos:</p>
+                          <div className="flex flex-wrap gap-2">
+                            {detectionResults.suggestedTags.map(tag => (
+                              <Badge key={tag} variant="secondary" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100">
+                                #{tag}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
                       <p className="text-xs text-muted-foreground mt-2">
-                        ✅ 3 transformaciones generadas (Escalado, B/N, Sepia)
+                        ✅ Análisis facial completo
                         <br />
-                        ✅ Miniaturas optimizadas creadas
+                        ✅ Detección de emociones realizada
                         <br />
-                        ✅ Análisis de contenido completado
+                        ✅ Sugerencias de tags generadas
                       </p>
                     </div>
                   </AlertDescription>
@@ -304,9 +548,9 @@ export function ImageUpload({ onClose, onUpload, currentUser }: ImageUploadProps
                 <AlertDescription className="text-xs">
                   <strong>Procesamiento automático incluye:</strong>
                   <br />
-                  • Reconocimiento facial con face-api.js y OpenCV
+                  • Reconocimiento facial con Cloud Vision API
                   <br />
-                  • Análisis de contenido con Amazon Rekognition
+                  • Análisis de Emociones con Cloud Vision API
                   <br />
                   • Generación de 3 transformaciones automáticas
                   <br />

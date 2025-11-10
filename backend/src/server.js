@@ -12,6 +12,7 @@ import routes from './routes/index.js';
 import bodyParser from "body-parser";
 import passport from "passport";
 import authRoutes from "./routes/auth.js";
+import visionRoutes from "./routes/visionRoutes.js";
 import "./config/passportGoogle.js"; // inicializa GoogleStrategy
 
 
@@ -69,6 +70,7 @@ app.use('/api', routes);
 // Rutas de autenticación Google
 // ========================
 app.use('/api/auth', authRoutes); // ya contiene /google y /google/callback
+app.use('/api/vision', visionRoutes); // rutas para Vision API
 
 
 

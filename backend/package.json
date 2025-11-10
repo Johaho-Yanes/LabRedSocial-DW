@@ -13,6 +13,7 @@
   "license": "MIT",
   "dependencies": {
     "@aws-sdk/client-s3": "^3.919.0",
+    "@google-cloud/vision": "^5.3.4",
     "bcryptjs": "^2.4.3",
     "compression": "^1.7.4",
     "cors": "^2.8.5",
