@@ -1,9 +1,11 @@
 import { useState, useEffect } from "react";
-import { ArrowLeft, Users, Image as ImageIcon, Camera, Heart } from "lucide-react";
+import { ArrowLeft, Users, Image as ImageIcon, Camera, Heart, Edit } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { ImageThumbnail } from "./ImageThumbnail";
 import { ProfilePictureUpload } from "./ProfilePictureUpload";
 import { userService } from "@/services/userService";
@@ -35,6 +37,9 @@ export function UserProfile({ user, userImages, following, isOwnProfile = false,
   const [isHoveringAvatar, setIsHoveringAvatar] = useState(false);
   const [favorites, setFavorites] = useState<ImageData[]>([]);
   const [loadingFavorites, setLoadingFavorites] = useState(false);
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [editedUsername, setEditedUsername] = useState(user.username);
+  const [editedBio, setEditedBio] = useState(user.bio || "");
   
   useEffect(() => {
     if (isOwnProfile) {
@@ -117,6 +122,22 @@ export function UserProfile({ user, userImages, following, isOwnProfile = false,
     }
     setShowAvatarUpload(false);
   };
+
+  const handleSaveProfile = async () => {
+    try {
+      await userService.updateProfile({
+        username: editedUsername,
+        bio: editedBio
+      });
+      setIsEditingProfile(false);
+      // Recargar la página para actualizar los datos
+      window.location.reload();
+    } catch (error) {
+      console.error('Error al actualizar perfil:', error);
+      alert('Error al actualizar el perfil');
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -154,18 +175,76 @@ export function UserProfile({ user, userImages, following, isOwnProfile = false,
               )}
             </div>
             <div className="flex-1 text-center sm:text-left">
-              <h2>@{user.username}</h2>
-              <p className="text-muted-foreground mt-2">{user.bio}</p>
-              <div className="flex gap-6 mt-4 justify-center sm:justify-start">
-                <div>
-                  <span className="text-muted-foreground">Imágenes</span>
-                  <p>{userImages.length}</p>
+              {!isEditingProfile ? (
+                <>
+                  <div className="flex items-center gap-2 justify-center sm:justify-start">
+                    <h2>@{user.username}</h2>
+                    {isOwnProfile && (
+                      <Button 
+                        variant="ghost" 
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => setIsEditingProfile(true)}
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                  <p className="text-muted-foreground mt-2">{user.bio}</p>
+                </>
+              ) : (
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-sm font-medium">Nombre de usuario</label>
+                    <Input 
+                      value={editedUsername}
+                      onChange={(e) => setEditedUsername(e.target.value)}
+                      placeholder="Tu nombre de usuario"
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">Biografía</label>
+                    <Textarea 
+                      value={editedBio}
+                      onChange={(e) => setEditedBio(e.target.value)}
+                      placeholder="Cuéntanos sobre ti"
+                      className="mt-1"
+                      rows={3}
+                    />
+                  </div>
+                  <div className="flex gap-2">
+                    <Button 
+                      onClick={handleSaveProfile}
+                      className="bg-purple-600 hover:bg-purple-700"
+                    >
+                      Guardar
+                    </Button>
+                    <Button 
+                      variant="outline"
+                      onClick={() => {
+                        setIsEditingProfile(false);
+                        setEditedUsername(user.username);
+                        setEditedBio(user.bio || "");
+                      }}
+                    >
+                      Cancelar
+                    </Button>
+                  </div>
                 </div>
-                <div>
-                  <span className="text-muted-foreground">Siguiendo</span>
-                  <p>{following.length}</p>
+              )}
+              {!isEditingProfile && (
+                <div className="flex gap-6 mt-4 justify-center sm:justify-start">
+                  <div>
+                    <span className="text-muted-foreground">Imágenes</span>
+                    <p>{userImages.length}</p>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Siguiendo</span>
+                    <p>{following.length}</p>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           </div>
         </div>

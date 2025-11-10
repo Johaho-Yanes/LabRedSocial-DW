@@ -20,9 +20,17 @@ const userSchema = new mongoose.Schema({
   },
   password: {
     type: String,
-    required: [true, 'La contraseña es requerida'],
+    required: function() {
+      // Password solo es requerido si NO es usuario de OAuth
+      return !this.googleId;
+    },
     minlength: [6, 'La contraseña debe tener al menos 6 caracteres'],
     select: false
+  },
+  googleId: {
+    type: String,
+    unique: true,
+    sparse: true // Permite que sea null o undefined
   },
   bio: {
     type: String,
@@ -57,7 +65,8 @@ const userSchema = new mongoose.Schema({
 
 // Encriptar contraseña antes de guardar
 userSchema.pre('save', async function(next) {
-  if (!this.isModified('password')) {
+  // Si no hay password (usuario OAuth) o no fue modificado, continuar
+  if (!this.password || !this.isModified('password')) {
     return next();
   }
   

@@ -108,6 +108,13 @@ data/
 aws-credentials.json
 
 # ============================================
+# GOOGLE CLOUD CREDENTIALS (CRÍTICO - NO SUBIR)
+# ============================================
+cloud-vision.json
+**/cloud-vision.json
+backend/src/cloud-vision.json
+
+# ============================================
 # OTROS
 # ============================================
 .eslintcache

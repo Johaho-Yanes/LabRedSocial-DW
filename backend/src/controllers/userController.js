@@ -409,11 +409,14 @@ const uploadAvatar = async (req, res) => {
       // ========== MODO S3 (PRODUCCIÓN) ==========
       console.log('📤 Subiendo avatar a S3...');
       
-      // Si tiene avatar anterior en S3, eliminarlo
-      if (currentUser.avatar && currentUser.avatar.includes('s3.amazonaws.com')) {
+      // Si tiene avatar anterior en S3, eliminarlo (cualquier URL de S3 o que contenga 'avatars/')
+      if (currentUser.avatar && 
+          (currentUser.avatar.includes('s3.amazonaws.com') || 
+           currentUser.avatar.includes('amazonaws.com') ||
+           currentUser.avatar.includes('avatars/'))) {
         try {
           await deleteFromS3(currentUser.avatar);
-          console.log('🗑️  Avatar anterior eliminado de S3');
+          console.log('🗑️  Avatar anterior eliminado de S3:', currentUser.avatar);
         } catch (err) {
           console.error('Error al eliminar avatar anterior de S3:', err);
         }
