@@ -16,9 +16,10 @@ interface ImageViewerProps {
   currentUser: UserData | null;
   onClose: () => void;
   onDelete?: () => void;
+  onNavigateToProfile?: (username: string) => void;
 }
 
-export function ImageViewer({ image, currentUser, onClose, onDelete }: ImageViewerProps) {
+export function ImageViewer({ image, currentUser, onClose, onDelete, onNavigateToProfile }: ImageViewerProps) {
   const [isFavorite, setIsFavorite] = useState(false);
   const [hasUpvoted, setHasUpvoted] = useState(
     currentUser && currentUser.id ? image.upvotes?.includes(currentUser.id) || false : false
@@ -131,7 +132,16 @@ export function ImageViewer({ image, currentUser, onClose, onDelete }: ImageView
         <div className="max-w-7xl mx-auto">
           {/* Header */}
           <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-4">
+            <div 
+              className="flex items-center gap-4 cursor-pointer hover:opacity-80 transition-opacity"
+              onClick={() => {
+                const username = image.author.username.replace('@', '');
+                if (onNavigateToProfile) {
+                  onNavigateToProfile(username);
+                }
+              }}
+              title="Ver perfil del usuario"
+            >
               <Avatar>
                 <AvatarImage src={image.author.avatar} />
                 <AvatarFallback>
@@ -139,7 +149,7 @@ export function ImageViewer({ image, currentUser, onClose, onDelete }: ImageView
                 </AvatarFallback>
               </Avatar>
               <div>
-                <p>{image.author.name}</p>
+                <p className="font-medium hover:underline">{image.author.name}</p>
                 <p className="text-sm text-muted-foreground">
                   {image.author.username} · {image.timestamp}
                 </p>
@@ -153,47 +163,14 @@ export function ImageViewer({ image, currentUser, onClose, onDelete }: ImageView
           <div className="grid lg:grid-cols-3 gap-6">
             {/* Main Image Area */}
             <div className="lg:col-span-2 space-y-6">
-              {/* Image Transformations Tabs */}
-              <Tabs defaultValue="original" className="w-full">
-                <TabsList className="w-full grid grid-cols-4">
-                  <TabsTrigger value="original">Original</TabsTrigger>
-                  <TabsTrigger value="sepia">Sepia</TabsTrigger>
-                  <TabsTrigger value="bw">Blanco y Negro</TabsTrigger>
-                  <TabsTrigger value="mirrored">Espejo</TabsTrigger>
-                </TabsList>
-
-                <div className="mt-4 rounded-lg overflow-hidden bg-muted">
-                  <TabsContent value="original" className="m-0">
-                    <ImageWithFallback
-                      src={image.transformations.original}
-                      alt={image.title}
-                      className="w-full h-auto max-h-[70vh] object-contain"
-                    />
-                  </TabsContent>
-                  <TabsContent value="sepia" className="m-0">
-                    <ImageWithFallback
-                      src={image.transformations.sepia}
-                      alt={`${image.title} - Sepia`}
-                      className="w-full h-auto max-h-[70vh] object-contain sepia"
-                    />
-                  </TabsContent>
-                  <TabsContent value="bw" className="m-0">
-                    <ImageWithFallback
-                      src={image.transformations.bw}
-                      alt={`${image.title} - Blanco y Negro`}
-                      className="w-full h-auto max-h-[70vh] object-contain grayscale"
-                    />
-                  </TabsContent>
-                  <TabsContent value="mirrored" className="m-0">
-                    <ImageWithFallback
-                      src={image.transformations.mirrored}
-                      alt={`${image.title} - Espejo`}
-                      className="w-full h-auto max-h-[70vh] object-contain"
-                      style={{ transform: 'scaleX(-1)' }}
-                    />
-                  </TabsContent>
-                </div>
-              </Tabs>
+              {/* Image - Solo vista original (transformaciones CSS solo) */}
+              <div className="rounded-lg overflow-hidden bg-muted">
+                <ImageWithFallback
+                  src={image.url}
+                  alt={image.title}
+                  className="w-full h-auto max-h-[70vh] object-contain"
+                />
+              </div>
 
               {/* Image Info */}
               <div className="space-y-4">
@@ -373,20 +350,8 @@ export function ImageViewer({ image, currentUser, onClose, onDelete }: ImageView
                     <span className="text-muted-foreground">Original</span>
                     <Badge variant="outline">Alta resolución</Badge>
                   </div>
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">Escalada</span>
-                    <Badge variant="outline">600x600</Badge>
-                  </div>
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">Blanco y Negro</span>
-                    <Badge variant="outline">Filtro monocromático</Badge>
-                  </div>
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">Sepia</span>
-                    <Badge variant="outline">Filtro vintage</Badge>
-                  </div>
                   <p className="text-xs text-muted-foreground pt-2 border-t">
-                    Generadas automáticamente al subir
+                    Imagen procesada y optimizada
                   </p>
                 </CardContent>
               </Card>
@@ -401,10 +366,10 @@ export function ImageViewer({ image, currentUser, onClose, onDelete }: ImageView
                     <div className="h-2 w-2 rounded-full bg-green-500 mt-1.5" />
                     <div>
                       <p className="text-muted-foreground">
-                        Almacenado en la nube
+                        Almacenado en AWS S3
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        Miniaturas optimizadas con Sharp
+                        Imágenes optimizadas
                       </p>
                     </div>
                   </div>
@@ -415,7 +380,7 @@ export function ImageViewer({ image, currentUser, onClose, onDelete }: ImageView
                         Metadatos en base de datos
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        PostgreSQL con Supabase
+                        MongoDB Atlas
                       </p>
                     </div>
                   </div>

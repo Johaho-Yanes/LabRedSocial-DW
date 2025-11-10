@@ -14,7 +14,7 @@ type ViewType = "welcome" | "home" | "profile" | "otherProfile" | "imageViewer";
 
 export default function App() {
   const [currentView, setCurrentView] = useState<ViewType>("welcome");
-  const [previousView, setPreviousView] = useState<ViewType>("home"); // Nueva variable para guardar la vista anterior
+  const [viewHistory, setViewHistory] = useState<ViewType[]>([]); // Historial de navegación
   const [activeProfileTab, setActiveProfileTab] = useState<string>("images"); // Guardar pestaña activa del perfil
   const [currentUser, setCurrentUser] = useState<UserData | null>(null);
   const [allImages, setAllImages] = useState<ImageData[]>([]);
@@ -82,19 +82,36 @@ export default function App() {
     }
   };
 
+  // Navegar a una vista y guardar en historial
+  const navigateToView = (view: ViewType) => {
+    setViewHistory((prev) => [...prev, currentView]);
+    setCurrentView(view);
+  };
+
+  // Volver a la vista anterior del historial
+  const navigateBack = () => {
+    setViewHistory((prev) => {
+      const newHistory = [...prev];
+      const previousView = newHistory.pop();
+      if (previousView) {
+        setCurrentView(previousView);
+      }
+      return newHistory;
+    });
+  };
+
   const handleImageClick = (image: ImageData) => {
-    setPreviousView(currentView); // Guardar la vista actual antes de cambiar
     setSelectedImage(image);
-    setCurrentView("imageViewer");
+    navigateToView("imageViewer");
   };
 
   const handleProfileClick = () => {
-    setCurrentView("profile");
+    navigateToView("profile");
   };
 
   const handleUserProfileClick = (username: string) => {
     setSelectedUsername(username);
-    setCurrentView("otherProfile");
+    navigateToView("otherProfile");
   };
 
   const handleAvatarChange = async (avatarFile: File) => {
@@ -204,7 +221,7 @@ export default function App() {
           bio={selectedUserData.bio}
           userImages={selectedUserImages}
           isFollowing={isFollowing}
-          onBack={() => setCurrentView("home")}
+          onBack={navigateBack} // Regresar usando historial
           onImageClick={handleImageClick}
           onFollow={handleFollow}
           onMessage={() => {
@@ -218,12 +235,15 @@ export default function App() {
         <ImageViewer
           image={selectedImage}
           currentUser={currentUser}
-          onClose={() => setCurrentView(previousView)} // Regresar a la vista anterior
+          onClose={navigateBack} // Regresar usando historial
           onDelete={async () => {
             // Recargar imágenes después de eliminar
             const images = await imageService.getAllImages();
             setAllImages(images);
-            setCurrentView(previousView); // Regresar a la vista anterior después de eliminar
+            navigateBack(); // Regresar usando historial
+          }}
+          onNavigateToProfile={(username) => {
+            handleUserProfileClick(username);
           }}
         />
       )}
