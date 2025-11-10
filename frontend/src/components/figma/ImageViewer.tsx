@@ -2,7 +2,7 @@ import { X, Heart, TrendingUp, TrendingDown, Download, User as UserIcon, Eye, Sp
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import type { ImageData, UserData } from "@/types";
@@ -163,14 +163,49 @@ export function ImageViewer({ image, currentUser, onClose, onDelete, onNavigateT
           <div className="grid lg:grid-cols-3 gap-6">
             {/* Main Image Area */}
             <div className="lg:col-span-2 space-y-6">
-              {/* Image - Solo vista original (transformaciones CSS solo) */}
-              <div className="rounded-lg overflow-hidden bg-muted">
-                <ImageWithFallback
-                  src={image.url}
-                  alt={image.title}
-                  className="w-full h-auto max-h-[70vh] object-contain"
-                />
-              </div>
+              {/* Image Transformations Tabs */}
+              <Tabs defaultValue="original" className="w-full">
+                <TabsList className="w-full grid grid-cols-4">
+                  <TabsTrigger value="original">Original</TabsTrigger>
+                  <TabsTrigger value="sepia">Sepia</TabsTrigger>
+                  <TabsTrigger value="bw">Blanco y Negro</TabsTrigger>
+                  <TabsTrigger value="mirrored">Espejo</TabsTrigger>
+                </TabsList>
+
+                <div className="mt-4 rounded-lg overflow-hidden bg-muted">
+                  <TabsContent value="original" className="m-0">
+                    <ImageWithFallback
+                      src={image.url}
+                      alt={image.title}
+                      className="w-full h-auto max-h-[70vh] object-contain"
+                    />
+                  </TabsContent>
+                  <TabsContent value="sepia" className="m-0">
+                    <ImageWithFallback
+                      src={image.url}
+                      alt={`${image.title} - Sepia`}
+                      className="w-full h-auto max-h-[70vh] object-contain"
+                      style={{ filter: 'sepia(100%)' }}
+                    />
+                  </TabsContent>
+                  <TabsContent value="bw" className="m-0">
+                    <ImageWithFallback
+                      src={image.url}
+                      alt={`${image.title} - Blanco y Negro`}
+                      className="w-full h-auto max-h-[70vh] object-contain"
+                      style={{ filter: 'grayscale(100%)' }}
+                    />
+                  </TabsContent>
+                  <TabsContent value="mirrored" className="m-0">
+                    <ImageWithFallback
+                      src={image.url}
+                      alt={`${image.title} - Espejo`}
+                      className="w-full h-auto max-h-[70vh] object-contain"
+                      style={{ transform: 'scaleX(-1)' }}
+                    />
+                  </TabsContent>
+                </div>
+              </Tabs>
 
               {/* Image Info */}
               <div className="space-y-4">
@@ -350,8 +385,20 @@ export function ImageViewer({ image, currentUser, onClose, onDelete, onNavigateT
                     <span className="text-muted-foreground">Original</span>
                     <Badge variant="outline">Alta resolución</Badge>
                   </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">Sepia</span>
+                    <Badge variant="outline">Filtro vintage</Badge>
+                  </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">Blanco y Negro</span>
+                    <Badge variant="outline">Filtro monocromático</Badge>
+                  </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">Espejo</span>
+                    <Badge variant="outline">Reflejo horizontal</Badge>
+                  </div>
                   <p className="text-xs text-muted-foreground pt-2 border-t">
-                    Imagen procesada y optimizada
+                    Filtros aplicados con CSS en tiempo real
                   </p>
                 </CardContent>
               </Card>
